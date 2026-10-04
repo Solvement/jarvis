@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, jsonb, bigint, index, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, jsonb, bigint, integer, index, primaryKey } from "drizzle-orm/pg-core";
 
 // ---- 内容 ----
 
@@ -28,6 +28,20 @@ export const readings = pgTable(
     payload: jsonb("payload").notNull(),
   },
   (t) => [index("readings_item_idx").on(t.itemId), index("readings_generated_idx").on(t.generatedAt)],
+);
+
+/** 看点卡：每期（美东日期）一组编辑推荐。是排期而非阅读版本，同一期可整体修订（D-018）。 */
+export const picks = pgTable(
+  "picks",
+  {
+    edition: text("edition").notNull(),
+    itemId: text("item_id").notNull(),
+    rank: integer("rank").notNull(),
+    status: text("status").notNull().default("queued"),
+    payload: jsonb("payload").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.edition, t.itemId] }), index("picks_edition_idx").on(t.edition)],
 );
 
 export const refreshLocks = pgTable("refresh_locks", {

@@ -34,4 +34,13 @@ export type Study = {
  review:{checkedAt:string;method:string;findings:string[]};openQuestions:string[];
 };
 export type LibraryViewer={signedIn:boolean;isOwner:boolean;authEnabled:boolean};
-export type Library = {boards:Board[];readings:Reading[]; notice?:string; viewer?:LibraryViewer};
+export type Library = {boards:Board[];readings:Reading[]; notice?:string; viewer?:LibraryViewer; edition?:Edition|null};
+/** 看点卡（D-018）。core=内核值得精读；tool=会用即可（写使用指南）；paper=论文。 */
+export type PickKind='core'|'tool'|'paper';
+export type PickPlan='deep'|'guide'|'brief';
+export type PickStatus='queued'|'reading'|'published';
+export type Pick={itemId:string;rank:number;kind:PickKind;plan:PickPlan;board:string;
+ headline:string;highlight:string;why:string;
+ /** 写卡时实际读到的范围，例如 readme+tree；不等于读过源码。 */
+ coverage:string;status:PickStatus;entry?:Entry};
+export type Edition={edition:string;picks:Pick[]};

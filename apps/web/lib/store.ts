@@ -101,7 +101,7 @@ function checkReading(r: Reading): void {
 }
 
 /** 条目以当前榜单为准；已离榜的条目用最近一次已存版本里的条目，修订版仍可导入（D-007）。 */
-async function knownEntries(db: Db, ids: string[]): Promise<Map<string, Entry>> {
+export async function knownEntries(db: Db, ids: string[]): Promise<Map<string, Entry>> {
   const entries = new Map((await latestBoards(db)).flatMap((b) => b.items).map((e) => [e.id, e]));
   const missing = [...new Set(ids.filter((id) => typeof id === "string" && !entries.has(id)))];
   if (!missing.length) return entries;
