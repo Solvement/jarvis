@@ -122,3 +122,15 @@
 ## 2026-10-04T15:40-04:00 · 补充验证：线上登录与个人状态
 
 **验证**（用户本人在 https://jarvis-reading.vercel.app 操作）：GitHub 登录成功，右上角显示"作者 · 退出"，`OWNER_EMAILS` 匹配生效；文章页"标为已读"后刷新页面仍显示"已读 ✓"，`item_states` 写入与读取在 Neon 上生效。2026-10-04T15:20 条目中"未验证"的前三项至此已验证；草稿发布按钮与 Vercel Cron 自动触发仍未验证。
+
+## 2026-10-04T16:45-04:00 · 报纸式首页与首期 39 张看点卡
+
+**改了什么**：新增 `picks` 表（迁移 `0001_picks.sql`）、`lib/picks.ts`、`/api/author/picks`、`/api/author/picks/status`；资料库响应附带最新一期；新首页 `#/today`（头条、本期索引、按排名的卡片网格、工具速查），导航增加"今日推荐"，默认进入首页；标题字体 Noto Serif SC。新增 `authoring/collect_pick_evidence.py`。首期 2026-10-04 共 39 张卡（内核 15、论文 4、工具 20），写入线上。
+
+**为什么**：D-012 第二步、D-018。
+
+**过程**：先写 7 条 picks 测试再实现（这次实现与测试同批写完后才首跑，不是严格先红后绿）。用脚本抓 35 个仓库的 README（前 14k 字）、两级目录、语言、最新 release 和固定 commit，存 `research/oct04-picks/`（不入库）；论文只读摘要并按 D-013 初筛。本地导入后截图发现 CSS 多栏使阅读顺序按列排列，改为网格；宽屏头条右侧空白，加"本期索引"；375px 宽导航换行，改为单行可滚动。
+
+**涉及**：`apps/web/{db/schema.ts,db/migrations/0001_picks.sql,lib/picks.ts,lib/store.ts,lib/types.ts,app/api/author/picks/**,app/api/library/route.ts,components/front-page.tsx,components/reader.tsx,app/layout.tsx,app/globals.css}`、`apps/web/test/picks.test.ts`、`authoring/collect_pick_evidence.py`、`.gitignore`、`IMPLEMENTATION_NOTES.md`、`state/author-results/2026-10-04-picks.json`（本地）。
+
+**验证**：本地 `npm test` 55/55、`tsc`、`next build` 通过；GitHub Actions run 37224338452（commit e64119a）通过。本地 1440px 与 375px 截图检查：卡片按排名逐行、无横向滚动（scrollWidth 375）、导航单行。线上 `/api/author/picks` 导入返回 `{"ok":true,"count":39}`，`/api/library` 返回 39 张卡且全部关联到榜单条目；线上首页截图显示头条与本期索引。**未做**：看点卡内容尚未经用户校准；任何一篇新的源码级精读尚未开写。
