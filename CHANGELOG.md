@@ -94,3 +94,15 @@
 **涉及**：`apps/web/**`、`.github/workflows/ci.yml`、`.gitignore`、`.gitattributes`、`LICENSE`、`README.md`、`CLAUDE.md`、`IMPLEMENTATION_NOTES.md`。
 
 **验证**：`npm run typecheck` 通过；`npm test` 4 个文件 44 条全部通过；`npm run build` 通过（10 条路由）。本机 dev 服务：首页渲染迁移数据、控制台无错误；无凭证访问 `/api/author`、`/api/cron/refresh`、`/api/me/state` 返回 401，`/api/author/visibility` 与跨站刷新返回 403；同源刷新实际抓取六榜成功（GitHub 15/19/23，HF 84/105/105，HF 来源日期 10/2、9/27、10/1）；临时凭证导入一条草稿，访客 0 条、作者 1 条。**未验证**：GitHub 登录流程（尚无 OAuth App）、Neon 连接与迁移、Vercel 部署与 Cron 实际触发。
+
+## 2026-10-04T14:45-04:00 · 代码审查修复、公开仓库与 CI
+
+**改了什么**：按代码审查的 5 条发现修复：登录系统出错时按匿名访客处理（不再让公开阅读 503）；离榜条目的修订版可导入（用已存版本中的条目核对 sourceHash）；版本 id 只哈希作者内容（榜单星数变化不再造成重复版本）；可见性切换与导出按 条目+层级+生成时间 定位；作者刷新后仍看到草稿。创建公开仓库 https://github.com/Solvement/jarvis 并推送。首次 CI 在 `npm ci` 失败（EBADPLATFORM：vite 的可选 peer `esbuild` 被标为 extraneous，其平台包丢失 optional 标记），显式固定 `esbuild@0.28.2` 为 devDependency 后修复。
+
+**为什么**：审查发现的都是有具体失败场景的缺陷；CI 必须在 Linux 上可复现安装。
+
+**过程**：先为 4 条可在数据层复现的发现写回归测试，确认 5 条新测试失败后再修；重新生成 lockfile 一次无效，定位到 extraneous 依赖后改为显式依赖。尝试用 Vercel 连接器创建项目，返回 403（连接器对该 scope 只读）。
+
+**涉及**：`apps/web/lib/{store,server}.ts`、`apps/web/app/api/{refresh,author/visibility,readings/export}/route.ts`、`apps/web/components/{account,reader}.tsx`、`apps/web/test/store.test.ts`、`apps/web/package.json`、`apps/web/package-lock.json`。
+
+**验证**：本地 `npm test` 48/48 通过，`tsc` 与 `next build` 通过；GitHub Actions run 37220016066（commit 474fa0c）typecheck、test、build 全部通过。**未完成**：Vercel 项目、Neon 数据库、GitHub OAuth App 均未创建（权限所限，待用户操作）。
