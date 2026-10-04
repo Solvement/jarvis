@@ -118,3 +118,7 @@
 **涉及**：Vercel 项目与环境变量（远端）、Neon 数据库（远端）、`CHANGELOG.md`。
 
 **验证**（2026-10-04 线上实测）：`/api/library` 200，6 榜、351 版本（翻译 284 / 摘要 62 / 精读 5）；无凭证访问 `/api/author`、`/api/cron/refresh`、`/api/me/state` 返回 401，跨站刷新 403；带凭证 `/api/author` 200；带 `CRON_SECRET` 调 `/api/cron/refresh` 200，Vercel 上实际抓取六榜成功（GitHub 15/19/23，HF 84/105/105，均非 stale）；`/api/auth/sign-in/social` 返回 github.com 授权地址，client_id 与回调地址正确；浏览器打开 WeKnora 精读页正常渲染，出现"GitHub 登录"按钮。旧站 `daily-ai-digest-ten.vercel.app`、`ai-brief-v2.vercel.app` 返回 503，两个 Pages 返回 404。**未验证**：完整 GitHub 登录回调（需用户本人授权）、作者邮箱识别、已读/收藏写入、草稿发布按钮、Vercel Cron 定时自动触发（首次应在 2026-10-05 11:30 UTC 左右）。
+
+## 2026-10-04T15:40-04:00 · 补充验证：线上登录与个人状态
+
+**验证**（用户本人在 https://jarvis-reading.vercel.app 操作）：GitHub 登录成功，右上角显示"作者 · 退出"，`OWNER_EMAILS` 匹配生效；文章页"标为已读"后刷新页面仍显示"已读 ✓"，`item_states` 写入与读取在 Neon 上生效。2026-10-04T15:20 条目中"未验证"的前三项至此已验证；草稿发布按钮与 Vercel Cron 自动触发仍未验证。
