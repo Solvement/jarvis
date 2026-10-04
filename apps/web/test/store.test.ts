@@ -77,6 +77,7 @@ describe("刷新", () => {
   it("六榜成功时全部保存", async () => {
     const lib = await refresh(db, ok, T0);
     expect(lib.boards).toHaveLength(6);
+    expect(lib.readings).toEqual([]);
     expect(lib.notice).toBeUndefined();
   });
 
@@ -86,6 +87,13 @@ describe("刷新", () => {
     const lib = await refresh(db, async (s, p) => (called++, ok(s, p)), T0 + 60_000);
     expect(called).toBe(0);
     expect(lib.notice).toMatch(/2 分钟/);
+  });
+
+  it("作者刷新后仍能看到草稿", async () => {
+    await refresh(db, ok, T0);
+    await importReadings(db, [translation("repo:github/daily")], { visibility: "draft" });
+    const lib = await refresh(db, ok, T0 + 200_000, OWNER);
+    expect(lib.readings).toHaveLength(1);
   });
 
   it("单榜失败保留上次成功内容并标记 stale", async () => {
@@ -133,6 +141,21 @@ describe("作者导入", () => {
     expect((await library(db, PUBLIC)).readings).toHaveLength(1);
   });
 
+  it("条目离榜后仍可导入修订版（用已存版本里的条目核对来源）", async () => {
+    await importReadings(db, [translation("repo:a/b")]);
+    await saveSnapshot(db, board("github", "monthly", [entry("repo:z/z")], "2026-10-05T10:00:00.000Z"));
+    const revised = translation("repo:a/b", "h-repo:a/b", "2026-10-07T09:00:00-04:00");
+    expect(await importReadings(db, [revised])).toEqual({ ok: true, count: 1 });
+    await expect(importReadings(db, [translation("repo:a/b", "changed", "2026-10-08T09:00:00-04:00")])).rejects.toThrow(/来源已改变/);
+  });
+
+  it("榜单数据（星数）变化后重复导入同一结果仍是幂等的", async () => {
+    await importReadings(db, [translation("repo:a/b")]);
+    await saveSnapshot(db, board("github", "monthly", [{ ...entry("repo:a/b"), stars: 999 }], "2026-10-05T10:00:00.000Z"));
+    await importReadings(db, [translation("repo:a/b")]);
+    expect((await library(db, PUBLIC)).readings).toHaveLength(1);
+  });
+
   it("一批中任何一条无效则整批不写入", async () => {
     await expect(importReadings(db, [translation("repo:a/b"), translation("repo:x/y")])).rejects.toThrow();
     expect((await library(db, OWNER)).readings).toHaveLength(0);
@@ -173,8 +196,18 @@ describe("草稿可见性", () => {
     expect(defaultVisibility(translation("repo:c/d"))).toBe("public");
   });
 
+  it("改可见性只作用于指定层级，不波及同时间戳的其他版本", async () => {
+    const brief = { ...translation("repo:a/b"), level: "brief" as const, sections: [{ heading: "h", body: "b", citations: ["s1"] }], sources: [{ id: "s1", title: "t", url: "https://github.com/a/b" }], limitations: ["l"] };
+    await importReadings(db, [brief], { visibility: "public" });
+    await setReadingVisibility(db, "repo:a/b", "2026-10-04T11:00:00-04:00", "translation", "public");
+    const pub = await library(db, PUBLIC);
+    expect(pub.readings.map((r) => r.level).sort()).toEqual(["brief", "translation"]);
+    await setReadingVisibility(db, "repo:a/b", "2026-10-04T11:00:00-04:00", "translation", "draft");
+    expect((await library(db, PUBLIC)).readings.map((r) => r.level)).toEqual(["brief"]);
+  });
+
   it("发布后访客可见", async () => {
-    const changed = await setReadingVisibility(db, "repo:a/b", "2026-10-04T11:00:00-04:00", "public");
+    const changed = await setReadingVisibility(db, "repo:a/b", "2026-10-04T11:00:00-04:00", "translation", "public");
     expect(changed).toBe(1);
     expect((await library(db, PUBLIC)).readings).toHaveLength(1);
   });

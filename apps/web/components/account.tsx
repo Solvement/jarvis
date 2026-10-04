@@ -40,7 +40,7 @@ export function DraftBanner({ reading, viewer, onPublished }: { reading: Reading
   const publish = async () => {
     setBusy(true); setError('');
     try {
-      const r = await fetch('/api/author/visibility', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itemId: reading.itemId, generatedAt: reading.generatedAt, visibility: 'public' }) });
+      const r = await fetch('/api/author/visibility', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itemId: reading.itemId, generatedAt: reading.generatedAt, level: reading.level, visibility: 'public' }) });
       if (!r.ok) throw new Error(((await r.json()) as { error?: string }).error || '发布失败');
       onPublished();
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }

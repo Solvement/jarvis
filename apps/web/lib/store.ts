@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, lt } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { itemStates, readings, refreshLocks, snapshots } from "@/db/schema";
-import type { Board, ItemState, Library, Period, Reading, Source, Viewer, Visibility } from "./types";
+import type { Board, Entry, ItemState, Library, Period, Reading, Source, Viewer, Visibility } from "./types";
 import { hash } from "./sources";
 import { validateDeep } from "./reading-quality";
 import attributions from "./paper-attributions.json";
@@ -63,9 +63,9 @@ async function acquireLock(db: Db, now: number): Promise<boolean> {
 }
 
 /** 抓取六榜。单榜失败时保留上次成功内容，另存一份带 stale 标记的快照作为失败记录。 */
-export async function refresh(db: Db, fetchBoard: BoardFetcher, now = Date.now()): Promise<Library> {
+export async function refresh(db: Db, fetchBoard: BoardFetcher, now = Date.now(), viewer: Viewer = { isOwner: false }): Promise<Library> {
   if (!(await acquireLock(db, now)))
-    return { ...(await library(db, { isOwner: false })), notice: "刚刚已发起刷新，请稍后重试。刷新间隔为 2 分钟。" };
+    return { ...(await library(db, viewer)), notice: "刚刚已发起刷新，请稍后重试。刷新间隔为 2 分钟。" };
   const previous = new Map((await latestBoards(db)).map((b) => [b.id, b]));
   const targets = SOURCES.flatMap((s) => PERIODS.map((p) => [s, p] as const));
   const results = await Promise.allSettled(targets.map(([s, p]) => fetchBoard(s, p)));
@@ -83,7 +83,7 @@ export async function refresh(db: Db, fetchBoard: BoardFetcher, now = Date.now()
     const error = res.reason instanceof Error ? res.reason.message : "来源暂不可用";
     await saveSnapshot(db, { ...old, stale: true, error }, `${id}:error:${checkedAt}`, checkedAt);
   }
-  const lib = await library(db, { isOwner: false });
+  const lib = await library(db, viewer);
   if (failed.length) lib.notice = `${failed.length} 个榜单暂未更新，已保留上次成功内容。`;
   return lib;
 }
@@ -100,6 +100,23 @@ function checkReading(r: Reading): void {
   validateDeep(r);
 }
 
+/** 条目以当前榜单为准；已离榜的条目用最近一次已存版本里的条目，修订版仍可导入（D-007）。 */
+async function knownEntries(db: Db, ids: string[]): Promise<Map<string, Entry>> {
+  const entries = new Map((await latestBoards(db)).flatMap((b) => b.items).map((e) => [e.id, e]));
+  const missing = [...new Set(ids.filter((id) => typeof id === "string" && !entries.has(id)))];
+  if (!missing.length) return entries;
+  const stored = await db
+    .selectDistinctOn([readings.itemId], { payload: readings.payload })
+    .from(readings)
+    .where(inArray(readings.itemId, missing))
+    .orderBy(readings.itemId, desc(readings.generatedAt));
+  for (const { payload } of stored) {
+    const e = (payload as Reading).entry;
+    if (e) entries.set(e.id, e);
+  }
+  return entries;
+}
+
 /** D-007：精读要与用户讨论修订后才公开，默认草稿；翻译与摘要默认公开。 */
 export function defaultVisibility(r: Reading): Visibility {
   return r.level === "deep" ? "draft" : "public";
@@ -112,7 +129,7 @@ export async function importReadings(
   opts: { visibility?: Visibility } = {},
 ): Promise<{ ok: true; count: number }> {
   if (!Array.isArray(payload) || !payload.length || payload.length > MAX_BATCH) throw new Error(`需要 1–${MAX_BATCH} 条阅读结果`);
-  const entries = new Map((await latestBoards(db)).flatMap((b) => b.items).map((e) => [e.id, e]));
+  const entries = await knownEntries(db, (payload as Reading[]).map((r) => r?.itemId));
   const rows: (typeof readings.$inferInsert)[] = [];
   for (const raw of payload as Reading[]) {
     const e = entries.get(raw?.itemId);
@@ -122,7 +139,8 @@ export async function importReadings(
     const { visibility: _ignored, ...rest } = raw;
     const r: Reading = { ...rest, entry: e };
     rows.push({
-      id: await hash(JSON.stringify(r)),
+      // id 只取作者写的内容；附带的榜单条目（星数、排名）每天变化，不能影响幂等。
+      id: await hash(JSON.stringify(rest)),
       itemId: r.itemId,
       sourceHash: r.sourceHash,
       level: r.level,
@@ -137,11 +155,12 @@ export async function importReadings(
   return { ok: true, count: rows.length };
 }
 
-export async function setReadingVisibility(db: Db, itemId: string, generatedAt: string, visibility: Visibility): Promise<number> {
+/** 一个版本由 条目 + 层级 + 生成时间 确定；同一批次的翻译、摘要、精读常共用生成时间。 */
+export async function setReadingVisibility(db: Db, itemId: string, generatedAt: string, level: Reading["level"], visibility: Visibility): Promise<number> {
   const rows = await db
     .update(readings)
     .set({ visibility })
-    .where(and(eq(readings.itemId, itemId), eq(readings.generatedAt, new Date(generatedAt))))
+    .where(and(eq(readings.itemId, itemId), eq(readings.level, level), eq(readings.generatedAt, new Date(generatedAt))))
     .returning({ id: readings.id });
   return rows.length;
 }
