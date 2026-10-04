@@ -1,0 +1,30 @@
+# 允许清单：本目录含大量私人与历史资料，只有下列路径进入公开仓库。
+# 新增需要公开的路径时，先确认不含个人笔记、凭证或不可再分发的原文。
+/*
+!/.gitignore
+!/.gitattributes
+!/.github/
+!/apps/
+!/README.md
+!/LICENSE
+!/CLAUDE.md
+!/CHANGELOG.md
+!/IMPLEMENTATION_NOTES.md
+!/research/
+/research/*
+!/research/deepread-method.md
+!/research/reading-method.md
+
+# 通用
+node_modules/
+.next/
+.vercel/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+__pycache__/
+*.pyc
+.pglite/

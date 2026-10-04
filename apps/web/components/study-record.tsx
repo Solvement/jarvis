@@ -1,0 +1,7 @@
+import type {Reading} from '@/lib/types';
+import {studyLabel} from '@/lib/reading-label';
+export {studyLabel};
+export default function StudyRecord({reading:r}:{reading:Reading}){const s=r.study;
+ if(r.level!=='deep')return null;
+ return <section className="study-record"><h2>这篇精读覆盖了什么</h2><p>{s?.scope||'这篇历史文章尚未按新标准补齐阅读覆盖、关键论断及复核记录。保留原文，复核状态为待复核。'}</p><p className="byline">{studyLabel(r)}{s?.sourceSnapshot&&<> · <a href={s.sourceSnapshot} target="_blank" rel="noreferrer">固定来源版本 ↗</a></>}</p>{s&&<><details><summary>阅读覆盖与复核记录</summary><ul>{s.sourceCoverage.map((c,i)=><li key={i}><b>{c.level==='read'?'已读':c.level==='skimmed'?'浏览':'未读'}：{c.path}</b> — {c.reason}</li>)}</ul><p>{s.review.method} · {s.review.checkedAt.slice(0,10)}</p><ul>{s.review.findings.map((x,i)=><li key={i}>{x}</li>)}</ul></details><details><summary>关键论断与证据（{s.claims.length} 条）</summary>{s.claims.map(c=><div key={c.id}><h3>{{fact:'来源事实',implementation:'源码核查',benchmark:'作者实验',inference:'我的分析',personal_application:'应用引申'}[c.kind]} · {c.text}</h3>{c.evidence.map((e,i)=>{const src=r.sources.find(x=>x.id===e.source);return <p key={i}>{src&&<a href={src.url} target="_blank" rel="noreferrer">{e.anchor} ↗</a>} · {e.support==='direct'?'直接证据':e.support==='indirect'?'间接依据':'弱依据'}</p>;})}</div>)}</details>{s.openQuestions.length>0&&<details><summary>仍待验证的问题</summary><ul>{s.openQuestions.map((x,i)=><li key={i}>{x}</li>)}</ul></details>}</>}</section>;
+}
