@@ -106,3 +106,15 @@
 **涉及**：`apps/web/lib/{store,server}.ts`、`apps/web/app/api/{refresh,author/visibility,readings/export}/route.ts`、`apps/web/components/{account,reader}.tsx`、`apps/web/test/store.test.ts`、`apps/web/package.json`、`apps/web/package-lock.json`。
 
 **验证**：本地 `npm test` 48/48 通过，`tsc` 与 `next build` 通过；GitHub Actions run 37220016066（commit 474fa0c）typecheck、test、build 全部通过。**未完成**：Vercel 项目、Neon 数据库、GitHub OAuth App 均未创建（权限所限，待用户操作）。
+
+## 2026-10-04T15:20-04:00 · 上线 Vercel：jarvis-reading.vercel.app
+
+**改了什么**：创建 Vercel 项目 `jarvis`（关联 `Solvement/jarvis`，根目录 `apps/web`），绑定 `jarvis-reading.vercel.app`；用户接入 Neon（Vercel 集成）并填入 7 个环境变量（`AUTHOR_TOKEN`、`CRON_SECRET`、`BETTER_AUTH_SECRET` 由本机生成，存于忽略文件 `state/vercel-env.local.txt`；GitHub App 凭证由用户填入）。生产部署时 `scripts/migrate.ts` 在 Neon 建表；从旧站导出的 6 个榜单快照与 351 个阅读版本导入 Neon。暂停旧 Vercel 项目 `daily-ai-digest`、`ai-brief-v2`；用户手动下线两个旧 GitHub Pages。
+
+**为什么**：D-005、D-012：先把基础设施做牢靠。
+
+**过程**：Vercel 连接器带 `teamId` 调用一律 403，不带 `teamId` 调用成功（个人账号的默认 team）。用户最初在聊天里贴出 GitHub App 的 client secret，按"暴露即视为泄露"处理：请用户重新生成并只填入 Vercel，旧值未被使用。用户建的是 GitHub App（Client ID 前缀 `Iv23`）而非 OAuth App，已请用户开启 Email addresses 只读权限。导入旧数据时从 Vercel 读取一次 `DATABASE_URL`，写入会话临时目录、运行导入后立即删除，未写入仓库。
+
+**涉及**：Vercel 项目与环境变量（远端）、Neon 数据库（远端）、`CHANGELOG.md`。
+
+**验证**（2026-10-04 线上实测）：`/api/library` 200，6 榜、351 版本（翻译 284 / 摘要 62 / 精读 5）；无凭证访问 `/api/author`、`/api/cron/refresh`、`/api/me/state` 返回 401，跨站刷新 403；带凭证 `/api/author` 200；带 `CRON_SECRET` 调 `/api/cron/refresh` 200，Vercel 上实际抓取六榜成功（GitHub 15/19/23，HF 84/105/105，均非 stale）；`/api/auth/sign-in/social` 返回 github.com 授权地址，client_id 与回调地址正确；浏览器打开 WeKnora 精读页正常渲染，出现"GitHub 登录"按钮。旧站 `daily-ai-digest-ten.vercel.app`、`ai-brief-v2.vercel.app` 返回 503，两个 Pages 返回 404。**未验证**：完整 GitHub 登录回调（需用户本人授权）、作者邮箱识别、已读/收藏写入、草稿发布按钮、Vercel Cron 定时自动触发（首次应在 2026-10-05 11:30 UTC 左右）。
