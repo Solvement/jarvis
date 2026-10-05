@@ -158,3 +158,15 @@
 **涉及**：`CHANGELOG.md`（本条）、本地 `state/author-results/build_ocr_deep.py`。
 
 **验证**：重新生成的 JSON 中 generatedAt 与 `date -Iseconds` 一致（见本次命令输出）。线上尚未导入任何带错误时间戳的版本。10/4 条目的时间戳未逐一核对，可能存在同类问题，未修改。
+
+## 2026-10-05T14:49-04:00 · 第二篇源码级精读（context-mode）与两篇草稿上线
+
+**改了什么**：写成 context-mode 精读（固定 commit e5fcca6，10 节、12 条论断、4 个机制、1 张流程图、1 个输出分流交互演示），并与 hermes-agent（e36a818）的 ContextCompressor 对照。open-code-review 与 context-mode 两篇以草稿（仅作者可见）导入线上；首期看点卡中两者状态改为"正在精读"。克隆 context-mode、hermes-agent 到 `D:\Agent-Proj`，context-mode 建 codegraph 索引。记录 D-022。
+
+**为什么**：沙箱组第一篇；用户要求先回答"沙箱解决什么、怎么解、解得怎样"，并与 Hermes 的压缩对比。
+
+**过程**：首次线上导入被 Vercel 平台的机器人检查拦截（403），原因是我等部署时高频轮询站点；停止请求，约 10 分钟后单次探测恢复 200，再导入。本地预览时预览窗格滚动位置不稳定，改为把图 1 单独作为临时静态文件渲染截图核对，核对后删除该临时文件。
+
+**涉及**：线上数据库（两篇草稿、两张卡片状态）；`IMPLEMENTATION_NOTES.md`；本地 `state/author-results/{build_ctxmode_deep.py,2026-10-05-ctxmode-deep.json}`。
+
+**验证**：本地导入成功，页面 10 节、2 个 iframe；图 1 单独渲染截图完整，图 2 拖动后正确显示"原样返回（小于 5KB）"。线上以作者凭证读取：两篇均为 draft，章节数 11 与 10，各含 2 个图示；访客视图不含草稿（由 D-007 的默认可见性保证，本次未单独请求访客视图）。未运行 context-mode，未复现其基准。
