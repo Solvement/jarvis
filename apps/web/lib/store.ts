@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, lt } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { itemStates, readings, refreshLocks, snapshots } from "@/db/schema";
-import type { Board, Entry, ItemState, Library, Period, Reading, Source, Viewer, Visibility } from "./types";
+import type { Board, Entry, Figure, ItemState, Library, Period, Reading, Source, Viewer, Visibility } from "./types";
 import { hash } from "./sources";
 import { validateDeep } from "./reading-quality";
 import attributions from "./paper-attributions.json";
@@ -97,7 +97,18 @@ function checkReading(r: Reading): void {
   if (r.sources.some((s) => !/^https:\/\//.test(s.url))) throw new Error("来源链接须为 HTTPS");
   if (r.sections.some((s) => !s.heading || !s.body || !s.citations?.length || s.citations.some((c) => !ids.has(c))))
     throw new Error("章节引用无效");
+  for (const s of r.sections) if (s.figure) checkFigure(s.figure);
   validateDeep(r);
+}
+
+const MAX_FIGURE_HTML = 300_000;
+function checkFigure(f: Figure): void {
+  const ok =
+    typeof f.title === "string" && f.title.trim() &&
+    typeof f.caption === "string" && f.caption.trim() &&
+    typeof f.html === "string" && f.html.trim() && f.html.length <= MAX_FIGURE_HTML &&
+    Number.isInteger(f.height) && f.height >= 120 && f.height <= 1600;
+  if (!ok) throw new Error(`图示无效：需要标题、说明、不超过 ${MAX_FIGURE_HTML} 字符的 HTML，高度 120–1600`);
 }
 
 /** 条目以当前榜单为准；已离榜的条目用最近一次已存版本里的条目，修订版仍可导入（D-007）。 */

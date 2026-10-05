@@ -12,7 +12,7 @@ export type Board = { id:string; source:Source; period:Period; sourceDate:string
  fetchedAt:string; url:string; items:Entry[]; stale?:boolean; error?:string; contentHash:string };
 export type Reading = { itemId:string; sourceHash:string; entry?:Entry; level:'translation'|'brief'|'deep';
  title:string; summary:string; generatedAt:string; author:string; coverage:string;
- sections:{heading:string;body:string;citations:string[]}[];
+ sections:{heading:string;body:string;citations:string[];figure?:Figure}[];
  sources:{id:string;title:string;url:string;locator?:string}[];
  terms?:{term:string;explanation:string}[]; limitations:string[];
  format?:'skill_guide'|'mechanism'|'paper';
@@ -44,3 +44,5 @@ export type Pick={itemId:string;rank:number;kind:PickKind;plan:PickPlan;board:st
  /** 写卡时实际读到的范围，例如 readme+tree；不等于读过源码。 */
  coverage:string;status:PickStatus;entry?:Entry};
 export type Edition={edition:string;picks:Pick[]};
+/** 章节图示：自包含 HTML/SVG，在无同源权限的沙箱 iframe 中渲染（D-021）。 */
+export type Figure={title:string;caption:string;html:string;height:number};

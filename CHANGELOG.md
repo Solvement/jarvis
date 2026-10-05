@@ -134,3 +134,15 @@
 **涉及**：`apps/web/{db/schema.ts,db/migrations/0001_picks.sql,lib/picks.ts,lib/store.ts,lib/types.ts,app/api/author/picks/**,app/api/library/route.ts,components/front-page.tsx,components/reader.tsx,app/layout.tsx,app/globals.css}`、`apps/web/test/picks.test.ts`、`authoring/collect_pick_evidence.py`、`.gitignore`、`IMPLEMENTATION_NOTES.md`、`state/author-results/2026-10-04-picks.json`（本地）。
 
 **验证**：本地 `npm test` 55/55、`tsc`、`next build` 通过；GitHub Actions run 37224338452（commit e64119a）通过。本地 1440px 与 375px 截图检查：卡片按排名逐行、无横向滚动（scrollWidth 375）、导航单行。线上 `/api/author/picks` 导入返回 `{"ok":true,"count":39}`，`/api/library` 返回 39 张卡且全部关联到榜单条目；线上首页截图显示头条与本期索引。**未做**：看点卡内容尚未经用户校准；任何一篇新的源码级精读尚未开写。
+
+## 2026-10-05T20:15-04:00 · 精读图示支持与第一篇源码级精读（open-code-review）
+
+**改了什么**：阅读章节新增可选 `figure`（类型 `Figure`、导入校验 `checkFigure`、组件 `figure-frame.tsx`，沙箱 iframe 渲染）。安装 ponytail 插件（用户级，4.12.0）。克隆 ponytail、open-code-review 到 `D:\Agent-Proj`，open-code-review 建立 codegraph 索引。写成 open-code-review 精读（固定 commit 182898c，11 节、14 条论断、4 个机制、1 张流程图、1 个交互演示），以草稿导入。记录 D-020（纠正 D-019 的规则化写法）与 D-021。
+
+**为什么**：用户要求先读月榜、按"问题→怎么解→解得怎样→我的判断"读到源码级；表达形式要求图与交互（D-003）。
+
+**过程**：安装 ponytail 前读了它的 hooks 与 SKILL.md：无网络调用，只在 `~/.claude` 写模式标记文件；其"代码后不写设计说明"与 CLAUDE.md 的四段推理冲突，以用户指令为准。精读按执行顺序用 codegraph 与逐行阅读核对：selection → coverage → grouping → per-group loop → filter → comment resolution → rules。本地预览发现流程图只画出第一个方框：无引号属性值紧跟 `/>` 使 SVG 标签未闭合，在 `/>` 前加空格修复；还发现演示代码中 `Delete` 的返回值不合法，改为 `Update`。每次修改内容都换了新的 generatedAt，避免两个版本共用同一时间戳。
+
+**涉及**：`apps/web/{lib/types.ts,lib/store.ts,components/figure-frame.tsx,components/reader.tsx,app/globals.css,test/store.test.ts}`、`IMPLEMENTATION_NOTES.md`；本地 `state/author-results/{build_ocr_deep.py,2026-10-05-ocr-deep.json}`、`research/selection-calibration.md`。
+
+**验证**：`npm test` 56/56 通过（新增图示校验用例先失败后通过）；`tsc` 通过。本地导入成功，页面 11 节、2 个 iframe；截图确认流程图完整显示，交互演示点击"同文件出现两次"后正确高亮两处并给出说明。未运行 open-code-review，未复现其基准。线上导入与用户阅读尚未发生。

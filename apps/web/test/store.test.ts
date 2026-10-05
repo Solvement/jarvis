@@ -161,6 +161,20 @@ describe("作者导入", () => {
     expect((await library(db, OWNER)).readings).toHaveLength(0);
   });
 
+  it("章节图示：字段齐全才能导入，超大或高度越界被拒绝", async () => {
+    const withFigure = (figure: Record<string, unknown>): Reading => ({
+      ...translation("repo:a/b"),
+      level: "brief",
+      sections: [{ heading: "h", body: "b", citations: ["s1"], figure } as Reading["sections"][number]],
+      sources: [{ id: "s1", title: "t", url: "https://github.com/a/b" }],
+      limitations: ["l"],
+    });
+    expect(await importReadings(db, [withFigure({ title: "流程", caption: "怎么看", html: "<svg></svg>", height: 300 })])).toEqual({ ok: true, count: 1 });
+    await expect(importReadings(db, [withFigure({ title: "", caption: "c", html: "<svg/>", height: 300 })])).rejects.toThrow(/图示/);
+    await expect(importReadings(db, [withFigure({ title: "t", caption: "c", html: "x".repeat(300_001), height: 300 })])).rejects.toThrow(/图示/);
+    await expect(importReadings(db, [withFigure({ title: "t", caption: "c", html: "<svg/>", height: 5000 })])).rejects.toThrow(/图示/);
+  });
+
   it("精读缺少结构化研读记录被拒绝", async () => {
     const deep: Reading = {
       ...translation("repo:a/b"),

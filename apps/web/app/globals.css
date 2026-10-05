@@ -54,3 +54,4 @@
 @media(max-width:1000px){.fp-top{grid-template-columns:1fr;gap:0}.fp-index{border-left:0;border-top:1px solid var(--line);padding:24px 0}}
 .main-nav a{white-space:nowrap}
 @media(max-width:560px){.main-nav>div{gap:18px;overflow-x:auto;scrollbar-width:none}.main-nav a span{display:none}.nav-caption{display:none}}
+.reading-figure{margin:6px 0 26px;padding:0}.figure-title{font-size:13px;letter-spacing:1.5px;color:var(--green);font-weight:700;margin-bottom:8px}.reading-figure iframe{display:block;width:100%;border:1px solid var(--line);border-radius:6px;background:white}.figure-caption{font-size:14px!important;line-height:1.8!important;color:var(--muted)!important;margin:10px 0 0!important}
