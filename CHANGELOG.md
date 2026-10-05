@@ -146,3 +146,15 @@
 **涉及**：`apps/web/{lib/types.ts,lib/store.ts,components/figure-frame.tsx,components/reader.tsx,app/globals.css,test/store.test.ts}`、`IMPLEMENTATION_NOTES.md`；本地 `state/author-results/{build_ocr_deep.py,2026-10-05-ocr-deep.json}`、`research/selection-calibration.md`。
 
 **验证**：`npm test` 56/56 通过（新增图示校验用例先失败后通过）；`tsc` 通过。本地导入成功，页面 11 节、2 个 iframe；截图确认流程图完整显示，交互演示点击"同文件出现两次"后正确高亮两处并给出说明。未运行 open-code-review，未复现其基准。线上导入与用户阅读尚未发生。
+
+## 2026-10-05T14:43-04:00 · 纠正：本日两条条目的时间戳
+
+**改了什么**：纠正 "2026-10-05T20:15-04:00 · 精读图示支持与第一篇源码级精读" 条目的时间戳——实际发生在 2026-10-05 下午约 14:00–14:40（美东），20:15 是我手写的未来时间，不是系统时钟。该条内容不变。同时，open-code-review 精读的 generatedAt 原先手写为 19:30 / 19:50 / 20:05（均为未来时间，只导入过本地开发库），改为由生成脚本读取系统时钟。
+
+**为什么**：CLAUDE.md 要求时间戳为真实带时区 ISO 时间；未来时间会让版本排序与"何时写成"的证据失真。
+
+**过程**：等待后台任务时用 `date` 发现当前为 14:43 美东，与已写时间不符。生成脚本改为 `datetime.now().astimezone()`；之后的 CHANGELOG 条目用 `date -Iminutes` 生成时间戳。
+
+**涉及**：`CHANGELOG.md`（本条）、本地 `state/author-results/build_ocr_deep.py`。
+
+**验证**：重新生成的 JSON 中 generatedAt 与 `date -Iseconds` 一致（见本次命令输出）。线上尚未导入任何带错误时间戳的版本。10/4 条目的时间戳未逐一核对，可能存在同类问题，未修改。
