@@ -55,3 +55,15 @@
 .main-nav a{white-space:nowrap}
 @media(max-width:560px){.main-nav>div{gap:18px;overflow-x:auto;scrollbar-width:none}.main-nav a span{display:none}.nav-caption{display:none}}
 .reading-figure{margin:6px 0 26px;padding:0}.figure-title{font-size:13px;letter-spacing:1.5px;color:var(--green);font-weight:700;margin-bottom:8px}.reading-figure iframe{display:block;width:100%;border:1px solid var(--line);border-radius:6px;background:white}.figure-caption{font-size:14px!important;line-height:1.8!important;color:var(--muted)!important;margin:10px 0 0!important}
+.body-list{margin:0 0 22px;padding-left:1.4em;font-size:var(--reading-font);line-height:1.95;color:#37463e}.body-list li{margin:4px 0;padding-left:4px}.body-list li::marker{color:var(--green)}
+.next-step{display:inline-block;margin-left:8px;font-size:12px;padding:2px 8px;border-radius:3px;background:#eef1ee;color:var(--ink)}.next-step.deep{background:var(--green);color:#fff}.next-step.skip{background:#f1e4dc;color:#7a3d22}.next-step.done{background:#dfe9f4;color:#244a6e}
+.fp-research{padding:30px 0 34px;border-bottom:1px solid var(--ink)}
+.fp-research h2{font-family:var(--serif);font-weight:900;font-size:26px;margin:0 0 16px;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.fp-research h2 small{font-family:'Segoe UI','Microsoft YaHei',sans-serif;font-weight:400;font-size:13px;color:var(--muted)}
+.fp-research-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.fp-q{display:grid;align-content:start;gap:8px;padding:16px 16px 14px;background:white;border:1px solid var(--line);border-radius:6px;transition:border-color .2s,transform .2s}
+.fp-q:hover{border-color:var(--green);transform:translateY(-2px);color:inherit}
+.fp-q-project{font-family:Consolas,monospace;font-size:12px;color:var(--green)}
+.fp-q-title{font-family:var(--serif);font-weight:900;font-size:17px;line-height:1.45}
+.fp-q-answer{font-size:13.5px;line-height:1.75;color:#4c5c54;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.fp-q .next-step{justify-self:start;margin:2px 0 0}

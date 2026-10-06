@@ -15,7 +15,9 @@ export type Reading = { itemId:string; sourceHash:string; entry?:Entry; level:'t
  sections:{heading:string;body:string;citations:string[];figure?:Figure}[];
  sources:{id:string;title:string;url:string;locator?:string}[];
  terms?:{term:string;explanation:string}[]; limitations:string[];
- format?:'skill_guide'|'mechanism'|'paper';
+ format?:'skill_guide'|'mechanism'|'paper'|'research';
+ /** 研究简报的下一步建议：精读 / 写摘要 / 会用即可 / 不读 / 已有精读。 */
+ nextStep?:{kind:'deep'|'brief'|'use'|'skip'|'done';label:string};
  skillCards?:{name:string;group:string;problem:string;when:string;boundary:string;url:string;experimental?:boolean}[];
  attribution?:{label:string;url:string;locator:string};
  study?:Study;

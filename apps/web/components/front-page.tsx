@@ -1,5 +1,5 @@
 'use client';
-import type { Edition, Pick, Reading } from '@/lib/types';
+import type { Board, Edition, Pick, Reading } from '@/lib/types';
 
 const BOARD: Record<string, string> = {
   'github:daily': 'GitHub 日榜', 'github:weekly': 'GitHub 周榜', 'github:monthly': 'GitHub 月榜',
@@ -15,14 +15,39 @@ function dateline(edition: string) {
   return `${y} 年 ${m} 月 ${d} 日 · 星期${WEEKDAY[w]}`;
 }
 
-function statusLabel(p: Pick, hasDeep: boolean) {
-  if (hasDeep || p.status === 'published') return p.plan === 'guide' ? '指南已发布' : '精读已发布';
+function statusLabel(p: Pick, deep?: Reading) {
+  if (deep?.visibility === 'draft') return '精读草稿 · 待讨论';
+  if (deep || p.status === 'published') return p.plan === 'guide' ? '指南已发布' : '精读已发布';
   if (p.status === 'reading') return '正在精读';
   return p.plan === 'guide' ? '使用指南 · 待写' : p.plan === 'deep' ? '精读排队中' : '摘要';
 }
 
 function readingFor(readings: Reading[], itemId: string) {
   return readings.find((r) => r.itemId === itemId && r.level === 'deep') ?? readings.find((r) => r.itemId === itemId && r.level === 'brief');
+}
+
+const etDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(iso));
+
+/** 最新一天的研究简报：你提出的问题 → 一句话答案 → 下一步。 */
+function ResearchStrip({ readings, boards }: { readings: Reading[]; boards: Board[] }) {
+  const research = readings.filter((r) => r.format === 'research');
+  if (!research.length) return null;
+  const day = research.map((r) => etDay(r.generatedAt)).sort().at(-1)!;
+  // 按榜单顺序排列：月榜 → 周榜 → 日榜，与你逐条点评时的顺序一致。
+  const order = new Map<string, number>();
+  for (const id of ['github:monthly', 'github:weekly', 'github:daily', 'hf:monthly', 'hf:weekly', 'hf:daily'])
+    for (const e of boards.find((b) => b.id === id)?.items ?? []) if (!order.has(e.id)) order.set(e.id, order.size);
+  const today = research.filter((r) => etDay(r.generatedAt) === day)
+    .sort((a, b) => (order.get(a.itemId) ?? 1e9) - (order.get(b.itemId) ?? 1e9));
+  return <section className="fp-research" aria-label="研究简报">
+    <h2>研究简报 <small>{day} · 你提出的 {today.length} 个问题，逐个查证</small></h2>
+    <div className="fp-research-grid">{today.map((r) => <a key={r.itemId + r.generatedAt} className="fp-q" href={`#/read/${encodeURIComponent(r.itemId)}`}>
+      <span className="fp-q-project">{r.entry?.title ?? r.itemId}</span>
+      <b className="fp-q-title">{r.title}</b>
+      <span className="fp-q-answer">{r.summary}</span>
+      {r.nextStep && <span className={'next-step ' + r.nextStep.kind}>{r.nextStep.label}</span>}
+    </a>)}</div>
+  </section>;
 }
 
 function Kicker({ p }: { p: Pick }) {
@@ -37,16 +62,16 @@ function Kicker({ p }: { p: Pick }) {
 }
 
 function Links({ p, reading }: { p: Pick; reading?: Reading }) {
-  const deep = reading?.level === 'deep';
+  const deep = reading?.level === 'deep' ? reading : undefined;
   return <div className="fp-links">
-    <span className={'fp-status' + (deep ? ' done' : '')}>{statusLabel(p, deep)}</span>
+    <span className={'fp-status' + (deep && deep.visibility !== 'draft' ? ' done' : '')}>{statusLabel(p, deep)}</span>
     {reading && <a href={`#/read/${encodeURIComponent(p.itemId)}`}>{deep ? '读精读' : '读摘要'} →</a>}
     {p.entry && <a href={p.entry.url} target="_blank" rel="noreferrer">{p.kind === 'paper' ? '原文' : '仓库'} ↗</a>}
   </div>;
 }
 
 /** 报纸式首页：头条 + 分栏看点卡 + 工具速查。每张卡只承诺"看点"，不冒充已读源码。 */
-export default function FrontPage({ edition, readings }: { edition?: Edition | null; readings: Reading[] }) {
+export default function FrontPage({ edition, readings, boards = [] }: { edition?: Edition | null; readings: Reading[]; boards?: Board[] }) {
   if (!edition?.picks.length)
     return <div className="front"><div className="empty"><h1>今日推荐尚未发布</h1><p>可以先看 <a href="#/github/monthly">GitHub 月榜</a>。</p></div></div>;
   const [lead, ...rest] = edition.picks.filter((p) => p.kind !== 'tool');
@@ -77,6 +102,7 @@ export default function FrontPage({ edition, readings }: { edition?: Edition | n
       <ol>{queue.slice(0, 5).map((p) => <li key={p.itemId}><span>{p.entry?.title ?? p.itemId}</span></li>)}</ol>
     </aside>
     </div>
+    <ResearchStrip readings={readings} boards={boards} />
     {!!rest.length && <div className="fp-columns">{rest.map((p) => {
       const r = readingFor(readings, p.itemId);
       return <article key={p.itemId} className="fp-card">

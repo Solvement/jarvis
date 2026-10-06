@@ -170,3 +170,15 @@
 **涉及**：线上数据库（两篇草稿、两张卡片状态）；`IMPLEMENTATION_NOTES.md`；本地 `state/author-results/{build_ctxmode_deep.py,2026-10-05-ctxmode-deep.json}`。
 
 **验证**：本地导入成功，页面 10 节、2 个 iframe；图 1 单独渲染截图完整，图 2 拖动后正确显示"原样返回（小于 5KB）"。线上以作者凭证读取：两篇均为 draft，章节数 11 与 10，各含 2 个图示；访客视图不含草稿（由 D-007 的默认可见性保证，本次未单独请求访客视图）。未运行 context-mode，未复现其基准。
+
+## 2026-10-05T20:22-04:00 · 2026-10-05 研究简报（13 篇）与正文分点、首页研究栏
+
+**改了什么**：新增 `lib/body.ts`（正文分段与列表解析）与 `components/body.tsx`；阅读格式新增 `research` 与 `nextStep`；首页新增"研究简报"栏（按榜单顺序）；首页状态在精读为草稿时显示"精读草稿 · 待讨论"而不是"已发布"。写成 13 篇研究简报（gods-eye-view、ECC、financial-services、paperclip、WeKnora、hindsight、hyperframes、archify、Octop、substrate、OpenShell、cua、ghidra），含 11 个图示，其中 9 个可交互或带动画。
+
+**为什么**：D-023；用户要求查证其提出的具体疑问并以分点、图示、动画在网页展示。
+
+**过程**：先把 12 个仓库全部浅克隆，用户提醒"值得精读的才下载"后删除 6 个（gods-eye-view、worldmonitor、financial-services、hyperframes、archify、Octop）和此前审查用的 ponytail 克隆，改用 GitHub API 读文档；6 个精读候选保留并建 codegraph 索引。正文解析先写测试后实现。本地验证中发现并修复：substrate 动画里被驱逐的"恢复中" actor 会被定时器复活（改为仅在仍持有 worker 时完成恢复）；hyperframes 图中一段纯 HTML 写成了字面 `\n`；financial-services 动画右下说明文字溢出；首页卡片顺序随机、草稿被标成已发布。预览窗格在 iframe 内无法稳定点击，改为把交互图临时放到 public/ 下单独打开、用脚本操作验证，验证后删除临时文件。
+
+**涉及**：`apps/web/{lib/body.ts,components/body.tsx,components/front-page.tsx,components/reader.tsx,lib/types.ts,lib/reading-label.ts,app/globals.css,test/body.test.ts}`、`IMPLEMENTATION_NOTES.md`；本地 `state/author-results/{build_oct05_research.py,2026-10-05-research.json}`、`research/{oct05-curiosity/,selection-calibration.md}`。
+
+**验证**：`npm test` 61/61 通过、`tsc` 与 `next build` 通过；13 篇导入本地成功；首页研究栏 13 张卡；逐个用脚本操作交互图并核对输出（substrate 驱逐与远程恢复、雷达 Beta 更新 50%±57% → 75%±38%、OpenShell 规则分级与退出码、时间轴第 3.6 秒=第 108 帧、hindsight 五步、ghidra 四步、cua 三种 effect）。线上导入见下一条或尚未进行。
