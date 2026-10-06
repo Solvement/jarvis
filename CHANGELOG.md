@@ -182,3 +182,9 @@
 **涉及**：`apps/web/{lib/body.ts,components/body.tsx,components/front-page.tsx,components/reader.tsx,lib/types.ts,lib/reading-label.ts,app/globals.css,test/body.test.ts}`、`IMPLEMENTATION_NOTES.md`；本地 `state/author-results/{build_oct05_research.py,2026-10-05-research.json}`、`research/{oct05-curiosity/,selection-calibration.md}`。
 
 **验证**：`npm test` 61/61 通过、`tsc` 与 `next build` 通过；13 篇导入本地成功；首页研究栏 13 张卡；逐个用脚本操作交互图并核对输出（substrate 驱逐与远程恢复、雷达 Beta 更新 50%±57% → 75%±38%、OpenShell 规则分级与退出码、时间轴第 3.6 秒=第 108 帧、hindsight 五步、ghidra 四步、cua 三种 effect）。线上导入见下一条或尚未进行。
+
+## 2026-10-05T20:25-04:00 · 研究简报上线
+
+**改了什么**：commit 55fb30f 部署到生产（Vercel 部署 dpl_2cALKW3Jbj1dCjdKWjiY3qPnr6Vi，状态由 Vercel API 确认为 READY，未轮询站点）；13 篇研究简报以公开可见导入线上。
+
+**验证**：导入返回 `{"ok":true,"count":13}`；访客视角 `/api/library` 读到 13 篇 research 格式、共 11 个图示，"下一步"标签 13 种齐全。线上页面的交互图未在浏览器中逐个复测（本地已逐个验证）。
