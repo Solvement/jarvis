@@ -331,3 +331,11 @@
 **涉及**：GitHub `main`（PR #1 合并）、Vercel 生产部署、Neon 计划与 compute 设置（远端）、`CHANGELOG.md`。
 
 **验证**：`dpl_AZwFdmU8MMmZ9AZ4dwgjfLCrzd1T` 状态 READY；构建日志有 `[migrate] 完成。`（说明能连上 Neon，且 0002/0003 不再重复执行）；路由与 10/19 线上部署一致；别名 `jarvisreading.com`、`jarvis-reading.vercel.app` 已指向该部署。部署后 15 分钟内运行日志为空，**没有访问记录，页面读数据是否正常尚未验证**；本容器代理拦截线上站点，无法自己请求。preview 部署在升级后是否恢复，尚未验证。
+
+## 2026-10-29T13:46-04:00 · 补充验证：生产恢复后网站正常
+
+**验证**：用户本人打开 https://jarvisreading.com ，确认网站正常。这一条补上上一条"页面读数据是否正常尚未验证"。部署 `dpl_AZwFdmU8MMmZ9AZ4dwgjfLCrzd1T` 在部署后 50 分钟内的 Vercel 运行日志中没有 error / fatal 记录（该接口只记录代码输出与报错，不记录正常请求，所以不能用它统计访问量）。PR [Solvement/jarvis#2](https://github.com/Solvement/jarvis/pull/2) 的 preview 部署 `dpl_7pYWUiwuzJqx7ahMm8Z1ZjxdxBVq` READY，构建日志有 `[migrate] 完成。`，说明 Neon 升级后 preview 建分支已恢复；preview 实际连到的是哪个数据库分支，未从日志中确认。
+
+**仍未完成**：数据库一个月用满 100 CU-hours 的原因未查明，需要 Neon 控制台 Monitoring 数据。用户没有逐项报告登录和"刷新最新内容"的结果，本条只记录"网站打开正常"。
+
+**涉及文件**：`CHANGELOG.md`。
