@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "飞书学习搭档 · Codex",
+  "version": "0.1.0",
+  "description": "在飞书文档旁提问，把当前正文、选区和光标交给本机订阅登录的 Codex。",
+  "permissions": ["sidePanel", "storage", "activeTab", "scripting"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "action": { "default_title": "打开飞书学习搭档" },
+  "side_panel": { "default_path": "panel.html" },
+  "background": { "service_worker": "background.js" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src http://127.0.0.1:*"
+  }
+}

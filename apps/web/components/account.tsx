@@ -1,13 +1,38 @@
 'use client';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { authClient } from '@/lib/auth-client';
 import type { ItemState, LibraryViewer, Reading } from '@/lib/types';
+import { EmailLogin } from './email-login';
 
-/** 顶栏：登录 / 退出。服务器未配置 GitHub OAuth 时不显示登录入口。 */
+/** 邮箱为主入口；GitHub 保留原回调域名，避免跨域丢失 OAuth state cookie。 */
 export function AccountBar({ viewer }: { viewer?: LibraryViewer }) {
+  const [open, setOpen] = useState(false), [error, setError] = useState('');
+  const githubLogin = useCallback(async (callbackURL = location.href) => {
+    setError('');
+    const origin = viewer?.githubLoginOrigin;
+    if (origin && new URL(origin).origin !== location.origin) {
+      const target = new URL(`${location.pathname}${location.search}${location.hash}`, origin);
+      target.searchParams.set('login', 'github');
+      location.assign(target.href);
+      return;
+    }
+    try {
+      const result = await authClient.signIn.social({ provider: 'github', callbackURL });
+      if (result.error) setError('GitHub 登录暂不可用，请使用邮箱验证码。');
+    } catch { setError('登录连接失败，请重试。'); }
+  }, [viewer?.githubLoginOrigin]);
+  useEffect(() => {
+    if (!viewer?.authEnabled || viewer.signedIn || !viewer.githubEnabled) return;
+    const current = new URL(location.href);
+    if (current.searchParams.get('login') !== 'github') return;
+    current.searchParams.delete('login');
+    history.replaceState(null, '', current.href);
+    void githubLogin(current.href);
+    // 只处理跨域入口携带的一次性登录意图。
+  }, [viewer?.authEnabled, viewer?.signedIn, viewer?.githubEnabled, githubLogin]);
   if (!viewer?.authEnabled) return null;
   if (!viewer.signedIn)
-    return <button className="account-link" onClick={() => authClient.signIn.social({ provider: 'github', callbackURL: location.href })}>GitHub 登录</button>;
+    return <><button className="account-link" onClick={() => viewer.emailEnabled ? setOpen(true) : void githubLogin()}>{viewer.emailEnabled ? '邮箱登录' : 'GitHub 登录'}</button>{open && <EmailLogin close={() => setOpen(false)} github={viewer.githubEnabled ? () => void githubLogin() : undefined}/>} {error && <span role="alert">{error}</span>}</>;
   return <button className="account-link" onClick={() => authClient.signOut().then(() => location.reload())}>{viewer.isOwner ? '作者 · ' : ''}退出</button>;
 }
 

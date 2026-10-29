@@ -1,0 +1,56 @@
+{
+  "commit": "3bcbec813a48e5ff385f2d428e5aaa67a89a03cc",
+  "checkedAt": "2026-10-19T21:11:34.166Z",
+  "fixture": "synthetic payment logs; no provider or network calls",
+  "rawBytes": 303962,
+  "executionResponseBytes": 856,
+  "searchResponseBytes": 1315,
+  "head5000Misses": true,
+  "tailEvidenceFound": true,
+  "records": [
+    {
+      "name": "ctx_execute",
+      "args": {
+        "language": "javascript",
+        "code": "for(let i=0;i<5000;i++) console.log('INFO payment accepted order_id='+i+' status=ok region=us-east'); console.log('ERROR PAYMENT_STATE_DIVERGED order_id=7492 expected=paid actual=pending');",
+        "intent": "PAYMENT_STATE_DIVERGED",
+        "timeout": 10000
+      },
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "```javascript\nfor(let i=0;i<5000;i++) console.log('INFO payment accepted order_id='+i+' status=ok region=us-east'); console.log('ERROR PAYMENT_STATE_DIVERGED order_id=7492 expected=paid actual=pending');\n```\n\nIndexed 278 sections from \"execute:javascript\" into knowledge base.\n1 sections matched \"PAYMENT_STATE_DIVERGED\" (5002 lines, 296.8KB):\n\n  - INFO payment accepted order_id=4986 status=ok region=us-east: INFO payment accepted order_id=4986 status=ok region=us-east\n\nSearchable terms: 1008, 1009, 1026, 1027, 1044, 1045, 1062, 1063, 1080, 1081, 1098, 1099, 1116, 1117, 1134, 1135, 1152, 1153, 1170, 1171, 1188, 1189, 1206, 1207, 1224, 1225, 1242, 1243, 1260, 1261, 1278, 1279, 1296, 1297, 1314, 1315, 1332, 1333, 1350, 1351\n\nUse ctx_search(queries: [...]) to retrieve full content of any section."
+          }
+        ]
+      }
+    },
+    {
+      "name": "ctx_search",
+      "args": {
+        "queries": [
+          "PAYMENT_STATE_DIVERGED"
+        ],
+        "source": "execute:javascript"
+      },
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "## PAYMENT_STATE_DIVERGED\n\n--- [current-session | 2026-10-19 21:11 | execute:javascript] ---\n### INFO payment accepted order_id=4986 status=ok region=us-east\n\nINFO payment accepted order_id=4986 status=ok region=us-east\nINFO payment accepted order_id=4987 status=ok region=us-east\nINFO payment accepted order_id=4988 status=ok region=us-east\nINFO payment accepted order_id=4989 status=ok region=us-east\nINFO payment accepted order_id=4990 status=ok region=us-east\nINFO payment accepted order_id=4991 status=ok region=us-east\nINFO payment accepted order_id=4992 status=ok region=us-east\nINFO payment accepted order_id=4993 status=ok region=us-east\nINFO payment accepted order_id=4994 status=ok region=us-east\nINFO payment accepted order_id=4995 status=ok region=us-east\nINFO payment accepted order_id=4996 status=ok region=us-east\nINFO payment accepted order_id=4997 status=ok region=us-east\nINFO payment accepted order_id=4998 status=ok region=us-east\nINFO payment accepted order_id=4999 status=ok region=us-east\nERROR PAYMENT_STATE_DIVERGED order_id=7492 expected=paid actual=pending\n\n\n> Throttle: call #1/8 in this window. 2 call(s) before soft cap. Prefer ctx_search(queries: [...]) array form for multi-query workloads — it counts as a single call."
+          }
+        ]
+      }
+    }
+  ],
+  "upstreamTests": {
+    "files": [
+      "tests/core/search.test.ts",
+      "tests/core/executor.test.ts"
+    ],
+    "passed": 155,
+    "failed": 0,
+    "scope": "two selected files; not full suite",
+    "log": "D:/Agent-Proj/jarvis-reading-samples/context-mode-tests.log"
+  }
+}

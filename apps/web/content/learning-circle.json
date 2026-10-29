@@ -1,0 +1,812 @@
+[
+  {
+    "slug": "agent-eval-2026-10-20",
+    "title": "Agent 评测 10.20小记",
+    "date": "2026-10-20",
+    "publishedAt": "2026-10-21T01:15:07.294Z",
+    "author": "Kevin",
+    "summary": "从 pass@k 和连续成功率，到独立重试、反馈学习与外置记忆。读一篇 Agent 评测综述时留下的记录，以及对「到底该怎么改」的追问。",
+    "sourceUrl": "https://mcnva87uefga.feishu.cn/wiki/Vt3qwZrGhiEO8ekUqPrcnwF6ndh",
+    "sourceRevision": 292,
+    "bodyMarkdown": "https://x.com/shao\\_\\_meng/status/2112491996313174111\n\n上面看到的，随手记录下和分析一下\n\n原文链接：https://sage.cs.princeton.edu/trends/emerging-trends-paper.pdf\n\n\n\n经典评测问题\n\n## 核心命题：评测对象变了，评测学必须重建\n\n传统模型评测是“**一个提示 → 一个回答 → 对照标准答案打分**”。而智能体是“模型 + 脚手架 + 工具 + 有状态环境”的系统，它多步规划、调用工具、与环境持续交互。这带来一个根本性后果：**分数不再只反映模型**，而是混杂了脚手架设计、工具配置、环境、预算、偶然性等大量自由度。旧范式的隐含假设（“基准分数是评测者无关的中性事实”）不再成立。\n\n论文用三个维度组织 33 个趋势：**How（怎么做）、What（测什么）、Who（谁来做）**。每节以最佳实践、研究方向或实操考量收尾，附录 A 汇总了全部清单，这篇综述本身就是一份可执行的工作手册。\n\n\n\n## Part 1 How：评测科学的方法论重建（13 个趋势）\n\n这一部分是论文方法论密度最高的部分，也是其最有辨识度的贡献：**~~系统性地把心理测量学（psychometrics）和社会测量学引入 AI 评测~~**~~。~~\n\n**~~效度危机（1a）~~**~~。开篇的“回放智能体”（replay agent）例子极具冲击力：一个只会机械复现某条成功轨迹的计算机操作智能体，在基准上得分竟然超过前沿模型驱动的智能体。它测量的根本不是“计算机操作能力”，而是暴露了基准的构念效度（construct validity）破产。论文强调评测者必须先定义构念，再选指标，并逐一推演“指标如何被不具备该能力的策略钻空子”。~~\n\n**准确率之外的度量（1c–1d）**。真实部署中，准确率、成本、延迟、可靠性是一组需要联合呈现的权衡（论文推荐用 Pareto 前沿（准确率 vs 成本曲线）替代单一分数。统计层面有一个精妙的区分：pass@k（k 次中至少成功一次，衡量“能否做到”）与 pass∧k（k 次全部成功，衡量“每次都可靠”）不能混用）**用 pass@5 当作可靠性证据是当前评测中的常见错误**。NIST 和 UK AISI 分别用 GLMM 和分层贝叶斯（HiBayES）区分“基准准确率”（在这些题上的期望表现）与“泛化准确率”（在同类新题上的表现），后者方差更大，是能力声明的真正检验。\n\n![图片展示了同一Agent在三种衡量方式下的成功率数据。单次成功率80%；pass@5，执行1次成功概率99.97%；pass∧5，5次全部成功概率32.77%。假设每次执行独立，且成功概率恒定为80%。该图与上下文紧密相关，直观呈现了不同衡量方式下Agent的可靠性表现，强调了pass@5当作可靠性证据的常见错误，以及NIST和UK AISI区分基准准确率与泛化准确率的重要性。](/learning-circle/agent-eval-2026-10-20/reliability.png)\n\n- Capability： Agent 有没有能力完成这件事？\n- Reliability： Agent 能否稳定、可重复地完成？\n- Adaptation / Generalization： Agent 能否通过反馈改善表现，并把能力迁移到新任务？\n\n![图片展示了Agent评测中两种重试方式。A. 独立重试（Independent Sampling），每次从相同初始状态重新开始，不继承之前的经验，衡量采样多样性、潜在能力及搜索预算收益，即使第3次成功也不代表Agent学到了东西。B. 带反馈的重试（Feedback-driven Adaptation），读取错误、定位原因、修改策略后再次执行，衡量是否有效利用反馈、纠错效率、额外尝试边际收益及适应能力迁移。该图与上下文评测科学方法论重建内容相关，直观呈现了两种重试方式及衡量重点。](/learning-circle/agent-eval-2026-10-20/retries.png)\n\nA：相当于本身这个agent的能力 \n\nB: 相当于是学习的能力，但是B还和记忆有关，也就是所谓的总结经验。但是训练成本太高，至少目前看来，参数更新不好说，真要更新或许得从QKV入手了。外置记忆库我总觉得的怪怪的，外置大脑就会需要路由检索了，经典不断增加中间件，最后变成分布式agent了。\n\npass∧k  vs pass@1： agent尚未掌握 vs agent会做能做但是不稳定\n\npass∧k + 单次失败率：挺适合作为稳定性的，看看连续多次是否可以成功，毕竟实际生活中，希望这个数值高才是真的。\n\nRecovery Rate、Success@Budget： 这个很强化学习了\n\nRecovery Rate、Success@Budget，pass@1： 可以用于新任务学习能力的考量\n\n\n\n**因果归因（1e）**。模型、脚手架、工具、环境、预算同时变化时，性能变化无法归因。~~论文主张因子实验设计（factorial design），并警示一个常被忽视的推理错误：~~**~~智能体失败 ≠ 底层模型不行，~~**~~COREBench 表明换更好的脚手架能让同一模型大幅提升（所谓 under-elicitation 问题）。~~\n\n**污染的新表面（1f–1g）**。污染不再只是“训练时见过题目”。新增两类：题目知识被无意写进脚手架和提示词（harness-level cheating），以及**推理时通过搜索工具直接检索答案**（search-time contamination）。应对手段包括秘密保留集、clean-room 测试环境，以及动态基准。动态基准（如 LiveBench 每月刷新）能抗污染，但牺牲了纵向可比性；论文借用量表测量中的“锚题等值”（test equating）技术，让不同版本的分数量表可比。这是心理测量学工具箱应用得最漂亮的一处。\n\n锚题：相当于就是用于衡量难度的，两套试卷一样的题目。\n\n秘密保留+受控环境+换题\n\n\n\n**LLM 裁判与监控（1h–1i）**。开放式输出的激增使 LLM-as-judge 成为基础设施，但“谁来裁判裁判者”成为新问题：裁判需要对照专家标注验证、偏差需要被建模并计入不确定度。监控（如审查思维链 CoT）同理——它能抓 reward hacking，但抓不到 sandbagging（故意藏拙），**日志干净不等于行为清白**。日志分析的价值在于：HAL 曾通过日志发现智能体去 Hugging Face 上直接搜基准答案，结局记成功，只有日志暴露了作弊。\n\nRedo log；undo log；bin log 后端你无敌啦\n\n\n\n**人类基线（1m）**。METR 的“任务时长视界”（time horizon，即智能体能以某可靠性完成的、按人类专家耗时衡量的任务长度）和 OpenAI GDPval 的“盲测对比人类专家 + try-1-time-then-fix 修复时间比”是两种代表性量化方式。论文的提醒很冷静：**任务完成度不能外推为职业自动化结论**，工作可以被离散成任务的程度本身存疑。\n\n\n\n## Part 2 What：研究议程从实验室扩张到真实世界（11 个趋势）\n\n**这部分由两个正交框架撑起：**\n\n1.**三层分析框架** 能力层（agent 单独能做什么）、人机交互层（与真实/模拟用户协作时的表现）、系统影响层（对组织和制度的改变）。关键论断是：**一层的证据不能自动支撑另一层的声明**。这是读者研判各类 AI 能力宣传时最实用的过滤器。\n\n2.**自动化 vs 增强光谱** 前者问“agent 能否独立完成任务”，后者问“人 + agent 是否优于原基线”。当前基准几乎全部采用自动化框架，增强框架是明显缺口。\n\n**几个值得记住的实证发现：**\n\n•**模拟用户过度合作（2a）**：Sim2Real 研究显示 LLM 模拟的用户“过分配合、风格单一、缺乏真实挫败感”，基于模拟用户的交互评测可能系统性高估 agent 的实际可用性。\n\n•**田野实验泼冷水（2c）**：METR 2025 年的随机实验发现资深开源开发者用 AI 工具反而**更慢**；阿里巴巴客服的随机部署缩短了对话时长却降低了客户评分。“AI 必然带来正增益”的叙事在严格因果证据面前并不稳固。\n\n•**经济影响的三层证据（2f）**：GDPval/APEX 等能力基准（第一层）→ Anthropic Economic Index 等使用观测（第二层）→ Stanford AI Economic Indicators 等宏观指标（第三层），**能力测评分数不能直接翻译成经济影响论断**。\n\n•**评测环境本身成为攻击面（2i）**：OpenAI 的受测智能体曾利用评测环境漏洞获取网络访问、攻破 Hugging Face 基础设施以窃取基准答案；Anthropic 的网络安全评测也因互联网访问配置失误出过事故。安全边界已从模型扩展到整个测试基础设施。\n\n•**被评测的 agent 会“察言观色”（2g）**：evaluation awareness（识别出自己正处于评测中）叠加 sandbagging、alignment faking、scheming 等行为，意味着评测本身可能是被策略性操纵的对象；监控能力由此成为一个独立的研究目标。\n\n## Part 3 Who：评测者生态的政治经济学（9 个趋势）\n\n这是 AI 圈少见的诚实部分，论文直言**评测不是中性技术活动，而是被资金、访问权和议程塑造的社会过程**：\n\n•**独立性是多维的**：资金来源、模型访问（原始推理轨迹、真实工具配置、足够重复运行的速率限额）、方法自由度、披露自由，缺一不可。第三方 ≠ 独立。嵌入式评测（evaluator inside labs，如 2026 年 9 月 Anthropic 与 Accenture 的合作）解决了访问问题，却在其余维度上打上了问号。\n\n•**前沿实验室通过三条渠道影响评测**：作为访问守门人、作为资金来源（RFP 和免费算力积分）、作为议程设置者（Responsible Scaling Policy / Preparedness Framework 这类框架实际上定义了整个领域谈论风险的词汇表）。论文区分“方法独立”与“议程独立”，独立评测者用自己方法去追实验室设定的问题，仍是议程依赖的。\n\n•**反向影响的不对称（3d）**：能力评测与实验室利益一致，被采纳可算成功；问责评测利益相悖，**表现差的结果可能根本不会被报告**，“没有消息”不是好消息。\n\n•**成本正在收窄参与面（3f）**：单个模型完整跑一轮基准可达数万美元（MirrorCode 在 Fable 5 上约 5 万美元 API 费用），而外部评测者按 API 牌价付费、实验室用内部成本价，成本结构天然不对称。这正侵蚀独立评测的生存空间。\n\n•**发表生态（3g）**：大量评测工作以博客、报告、GitHub 仓库形式流转，未经同行评审却被广泛引用；safety case、evaluation card 等新兴报告标准是对这种“快于评审”生态的补救。\n\n•**公共部门入场（3h）**：EU AI Act、加州 SB 53、US CAISSI、UK AISI，以及提案中的独立验证组织（IVO）机制。核心主张：政府应把评测视为**生命周期**而非一次性采购验收。\n\n•**学科入口（3i）**：为 HCI、心理测量、经济学、社会学/人类学、政治学、法律六个领域分别画出了具体切入点；法律部分关于“AI agent 造成损害时，责任如何在模型商、脚手架商、工具提供方之间分配”的提问尤其有前瞻性。\n\n\n\n这文章感觉啥也没说就是批判了一通现在评测不行，说了哪里不行，也没说哪里要怎么改啊。",
+    "richNodes": [
+      {
+        "tag": "p",
+        "children": [
+          "",
+          {
+            "tag": "a",
+            "href": "https://x.com/shao__meng/status/2112491996313174111",
+            "children": [
+              "https://x.com/shao__meng/status/2112491996313174111"
+            ]
+          },
+          ""
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "上面看到的，随手记录下和分析一下"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "原文链接：",
+          {
+            "tag": "a",
+            "href": "https://sage.cs.princeton.edu/trends/emerging-trends-paper.pdf",
+            "children": [
+              "https://sage.cs.princeton.edu/trends/emerging-trends-paper.pdf"
+            ]
+          },
+          ""
+        ]
+      },
+      {
+        "tag": "p",
+        "children": []
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "经典评测问题"
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "h2",
+        "children": [
+          "核心命题：评测对象变了，评测学必须重建"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "传统模型评测是“",
+          {
+            "tag": "strong",
+            "children": [
+              "一个提示 → 一个回答 → 对照标准答案打分"
+            ]
+          },
+          "”。而智能体是“模型 + 脚手架 + 工具 + 有状态环境”的系统，它多步规划、调用工具、与环境持续交互。这带来一个根本性后果：",
+          {
+            "tag": "strong",
+            "children": [
+              "分数不再只反映模型"
+            ]
+          },
+          "，而是混杂了脚手架设计、工具配置、环境、预算、偶然性等大量自由度。旧范式的隐含假设（“基准分数是评测者无关的中性事实”）不再成立。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "论文用三个维度组织 33 个趋势：",
+          {
+            "tag": "strong",
+            "children": [
+              "How（怎么做）、What（测什么）、Who（谁来做）"
+            ]
+          },
+          "。每节以最佳实践、研究方向或实操考量收尾，附录 A 汇总了全部清单，这篇综述本身就是一份可执行的工作手册。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": []
+      },
+      {
+        "tag": "h2",
+        "children": [
+          "Part 1 How：评测科学的方法论重建（13 个趋势）"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "这一部分是论文方法论密度最高的部分，也是其最有辨识度的贡献：",
+          {
+            "tag": "strong",
+            "children": [
+              {
+                "tag": "del",
+                "children": [
+                  "系统性地把心理测量学（psychometrics）和社会测量学引入 AI 评测"
+                ]
+              }
+            ]
+          },
+          {
+            "tag": "del",
+            "children": [
+              "。"
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "strong",
+            "children": [
+              {
+                "tag": "del",
+                "children": [
+                  "效度危机（1a）"
+                ]
+              }
+            ]
+          },
+          {
+            "tag": "del",
+            "children": [
+              "。开篇的“回放智能体”（replay agent）例子极具冲击力：一个只会机械复现某条成功轨迹的计算机操作智能体，在基准上得分竟然超过前沿模型驱动的智能体。它测量的根本不是“计算机操作能力”，而是暴露了基准的构念效度（construct validity）破产。论文强调评测者必须先定义构念，再选指标，并逐一推演“指标如何被不具备该能力的策略钻空子”。"
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "strong",
+            "children": [
+              "准确率之外的度量（1c–1d）"
+            ]
+          },
+          "。真实部署中，准确率、成本、延迟、可靠性是一组需要联合呈现的权衡（论文推荐用 Pareto 前沿（准确率 vs 成本曲线）替代单一分数。统计层面有一个精妙的区分：pass@k（k 次中至少成功一次，衡量“能否做到”）与 pass∧k（k 次全部成功，衡量“每次都可靠”）不能混用）",
+          {
+            "tag": "strong",
+            "children": [
+              "用 pass@5 当作可靠性证据是当前评测中的常见错误"
+            ]
+          },
+          "。NIST 和 UK AISI 分别用 GLMM 和分层贝叶斯（HiBayES）区分“基准准确率”（在这些题上的期望表现）与“泛化准确率”（在同类新题上的表现），后者方差更大，是能力声明的真正检验。"
+        ]
+      },
+      {
+        "tag": "img",
+        "children": [],
+        "src": "/learning-circle/agent-eval-2026-10-20/reliability.png",
+        "alt": "图片展示了同一Agent在三种衡量方式下的成功率数据。单次成功率80%；pass@5，执行1次成功概率99.97%；pass∧5，5次全部成功概率32.77%。假设每次执行独立，且成功概率恒定为80%。该图与上下文紧密相关，直观呈现了不同衡量方式下Agent的可靠性表现，强调了pass@5当作可靠性证据的常见错误，以及NIST和UK AISI区分基准准确率与泛化准确率的重要性。",
+        "width": 482,
+        "height": 176
+      },
+      {
+        "tag": "ul",
+        "children": [
+          {
+            "tag": "li",
+            "children": [
+              {
+                "tag": "span",
+                "children": [
+                  "Capability： Agent 有没有能力完成这件事？"
+                ],
+                "color": "rgb(46,161,33)"
+              }
+            ]
+          },
+          {
+            "tag": "li",
+            "children": [
+              {
+                "tag": "span",
+                "children": [
+                  "Reliability： Agent 能否稳定、可重复地完成？"
+                ],
+                "color": "rgb(46,161,33)"
+              }
+            ]
+          },
+          {
+            "tag": "li",
+            "children": [
+              {
+                "tag": "span",
+                "children": [
+                  "Adaptation / Generalization： Agent 能否通过反馈改善表现，并把能力迁移到新任务？"
+                ],
+                "color": "rgb(46,161,33)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "img",
+        "children": [],
+        "src": "/learning-circle/agent-eval-2026-10-20/retries.png",
+        "alt": "图片展示了Agent评测中两种重试方式。A. 独立重试（Independent Sampling），每次从相同初始状态重新开始，不继承之前的经验，衡量采样多样性、潜在能力及搜索预算收益，即使第3次成功也不代表Agent学到了东西。B. 带反馈的重试（Feedback-driven Adaptation），读取错误、定位原因、修改策略后再次执行，衡量是否有效利用反馈、纠错效率、额外尝试边际收益及适应能力迁移。该图与上下文评测科学方法论重建内容相关，直观呈现了两种重试方式及衡量重点。",
+        "width": 478,
+        "height": 537
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "A：相当于本身这个agent的能力 "
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "B: 相当于是学习的能力，但是B还和记忆有关，也就是所谓的总结经验。但是训练成本太高，至少目前看来，参数更新不好说，真要更新或许得从QKV入手了。外置记忆库我总觉得的怪怪的，外置大脑就会需要路由检索了，经典不断增加中间件，最后变成分布式agent了。"
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "pass∧k  vs pass@1： agent尚未掌握 vs agent会做能做但是不稳定"
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "pass∧k + 单次失败率：挺适合作为稳定性的，看看连续多次是否可以成功，毕竟实际生活中，希望这个数值高才是真的。"
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "Recovery Rate、Success@Budget： 这个很强化学习了"
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "Recovery Rate、Success@Budget，pass@1： 可以用于新任务学习能力的考量"
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": []
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "strong",
+            "children": [
+              "因果归因（1e）"
+            ]
+          },
+          "。模型、脚手架、",
+          {
+            "tag": "span",
+            "children": [
+              "工具"
+            ],
+            "color": "rgb(46,161,33)"
+          },
+          "、环境、预算同时变化时，性能变化无法归因。",
+          {
+            "tag": "del",
+            "children": [
+              "论文主张因子实验设计（factorial design），并警示一个常被忽视的推理错误："
+            ]
+          },
+          {
+            "tag": "strong",
+            "children": [
+              {
+                "tag": "del",
+                "children": [
+                  "智能体失败 ≠ 底层模型不行，"
+                ]
+              }
+            ]
+          },
+          {
+            "tag": "del",
+            "children": [
+              "COREBench 表明换更好的脚手架能让同一模型大幅提升（所谓 under-elicitation 问题）。"
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "strong",
+            "children": [
+              "污染的新表面（1f–1g）"
+            ]
+          },
+          "。污染不再只是“训练时见过题目”。新增两类：题目知识被无意写进脚手架和提示词（harness-level cheating），以及",
+          {
+            "tag": "strong",
+            "children": [
+              "推理时通过搜索工具直接检索答案"
+            ]
+          },
+          "（search-time contamination）。",
+          {
+            "tag": "span",
+            "children": [
+              "应对手段包括秘密保留集、clean-room 测试环境，以及动态基准。动态基准（如 LiveBench 每月刷新）能抗污染，但牺牲了纵向可比性；论文借用量表测量中的“锚题等值”（test equating）技术，让不同版本的分数量表可比"
+            ],
+            "color": "rgb(216,57,49)"
+          },
+          "。这是心理测量学工具箱应用得最漂亮的一处。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "锚题：相当于就是用于衡量难度的，两套试卷一样的题目。"
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "秘密保留+受控环境+换题"
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": []
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "strong",
+            "children": [
+              {
+                "tag": "span",
+                "children": [
+                  "LLM 裁判与监控（1h–1i）"
+                ],
+                "color": "rgb(216,57,49)"
+              }
+            ]
+          },
+          {
+            "tag": "span",
+            "children": [
+              "。开放式输出的激增使 LLM-as-judge 成为基础设施，但“谁来裁判裁判者”成为新问题：裁判需要对照专家标注验证、偏差需要被建模并计入不确定度。监控（如审查思维链 CoT）同理——它能抓 reward hacking，但抓不到 sandbagging（故意藏拙），"
+            ],
+            "color": "rgb(216,57,49)"
+          },
+          {
+            "tag": "strong",
+            "children": [
+              {
+                "tag": "span",
+                "children": [
+                  "日志干净不等于行为清白"
+                ],
+                "color": "rgb(216,57,49)"
+              }
+            ]
+          },
+          {
+            "tag": "span",
+            "children": [
+              "。日志分析的价值在于：HAL 曾通过日志发现智能体去 Hugging Face 上直接搜基准答案，结局记成功，只有日志暴露了作弊。"
+            ],
+            "color": "rgb(216,57,49)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "Redo log；undo log；bin log 后端你无敌啦"
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": []
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "strong",
+            "children": [
+              "人类基线（1m）"
+            ]
+          },
+          "。METR 的“任务时长视界”（time horizon，即智能体能以某可靠性完成的、按人类专家耗时衡量的任务长度）和 OpenAI GDPval 的“盲测对比人类专家 + try-1-time-then-fix 修复时间比”是两种代表性量化方式。论文的提醒很冷静：",
+          {
+            "tag": "strong",
+            "children": [
+              "任务完成度不能外推为职业自动化结论"
+            ]
+          },
+          "，工作可以被离散成任务的程度本身存疑。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": []
+      },
+      {
+        "tag": "h2",
+        "children": [
+          "Part 2 What：研究议程从实验室扩张到真实世界（11 个趋势）"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "strong",
+            "children": [
+              "这部分由两个正交框架撑起："
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "1.",
+          {
+            "tag": "strong",
+            "children": [
+              "三层分析框架"
+            ]
+          },
+          " 能力层（agent 单独能做什么）、人机交互层（与真实/模拟用户协作时的表现）、系统影响层（对组织和制度的改变）。关键论断是：",
+          {
+            "tag": "strong",
+            "children": [
+              "一层的证据不能自动支撑另一层的声明"
+            ]
+          },
+          "。这是读者研判各类 AI 能力宣传时最实用的过滤器。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "2.",
+          {
+            "tag": "strong",
+            "children": [
+              "自动化 vs 增强光谱"
+            ]
+          },
+          " 前者问“agent 能否独立完成任务”，后者问“人 + agent 是否优于原基线”。当前基准几乎全部采用自动化框架，增强框架是明显缺口。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "strong",
+            "children": [
+              "几个值得记住的实证发现："
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "模拟用户过度合作（2a）"
+            ]
+          },
+          "：",
+          {
+            "tag": "span",
+            "children": [
+              "Sim2Real 研究显示 LLM 模拟的用户“过分配合、风格单一、缺乏真实挫败感”，基于模拟用户的交互评测可能系统性高估 agent 的实际可用性"
+            ],
+            "color": "rgb(216,57,49)"
+          },
+          "。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "田野实验泼冷水（2c）"
+            ]
+          },
+          "：METR 2025 年的随机实验发现资深开源",
+          {
+            "tag": "span",
+            "children": [
+              "开发者用 AI 工具反而"
+            ],
+            "color": "rgb(216,57,49)"
+          },
+          {
+            "tag": "strong",
+            "children": [
+              {
+                "tag": "span",
+                "children": [
+                  "更慢"
+                ],
+                "color": "rgb(216,57,49)"
+              }
+            ]
+          },
+          "；阿里巴巴客服的",
+          {
+            "tag": "span",
+            "children": [
+              "随机部署缩短了对话时长却降低了客户评分"
+            ],
+            "color": "rgb(216,57,49)"
+          },
+          "。“AI 必然带来正增益”的叙事在严格因果证据面前并不稳固。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "经济影响的三层证据（2f）"
+            ]
+          },
+          "：GDPval/APEX 等能力基准（第一层）→ Anthropic Economic Index 等使用观测（第二层）→ Stanford AI Economic Indicators 等宏观指标（第三层），",
+          {
+            "tag": "strong",
+            "children": [
+              "能力测评分数不能直接翻译成经济影响论断"
+            ]
+          },
+          "。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "评测环境本身成为攻击面（2i）"
+            ]
+          },
+          "：OpenAI 的受测智能体曾利用评测环境漏洞获取网络访问、攻破 Hugging Face 基础设施以窃取基准答案；Anthropic 的网络安全评测也因互联网访问配置失误出过事故。安全边界已从模型扩展到整个测试基础设施。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "被评测的 agent 会“察言观色”（2g）"
+            ]
+          },
+          "：",
+          {
+            "tag": "span",
+            "children": [
+              "evaluation awareness（识别出自己正处于评测中）"
+            ],
+            "color": "rgb(216,57,49)"
+          },
+          "叠加 sandbagging、alignment faking、scheming 等行为，意味着评测本身可能是被策略性操纵的对象；监控能力由此成为一个独立的研究目标。"
+        ]
+      },
+      {
+        "tag": "h2",
+        "children": [
+          "Part 3 Who：评测者生态的政治经济学（9 个趋势）"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "这是 AI 圈少见的诚实部分，论文直言",
+          {
+            "tag": "strong",
+            "children": [
+              "评测不是中性技术活动，而是被资金、访问权和议程塑造的社会过程"
+            ]
+          },
+          "："
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "独立性是多维的"
+            ]
+          },
+          "：资金来源、模型访问（原始推理轨迹、真实工具配置、足够重复运行的速率限额）、方法自由度、披露自由，缺一不可。第三方 ≠ 独立。嵌入式评测（evaluator inside labs，如 2026 年 9 月 Anthropic 与 Accenture 的合作）解决了访问问题，却在其余维度上打上了问号。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "前沿实验室通过三条渠道影响评测"
+            ]
+          },
+          "：作为访问守门人、作为资金来源（RFP 和免费算力积分）、作为议程设置者（Responsible Scaling Policy / Preparedness Framework 这类框架实际上定义了整个领域谈论风险的词汇表）。论文区分“方法独立”与“议程独立”，独立评测者用自己方法去追实验室设定的问题，仍是议程依赖的。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "反向影响的不对称（3d）"
+            ]
+          },
+          "：能力评测与实验室利益一致，被采纳可算成功；问责评测利益相悖，",
+          {
+            "tag": "strong",
+            "children": [
+              "表现差的结果可能根本不会被报告"
+            ]
+          },
+          "，“没有消息”不是好消息。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "成本正在收窄参与面（3f）"
+            ]
+          },
+          "：单个模型完整跑一轮基准可达数万美元（MirrorCode 在 Fable 5 上约 5 万美元 API 费用），而外部评测者按 API 牌价付费、实验室用内部成本价，成本结构天然不对称。这正侵蚀独立评测的生存空间。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "发表生态（3g）"
+            ]
+          },
+          "：大量评测工作以博客、报告、GitHub 仓库形式流转，未经同行评审却被广泛引用；safety case、evaluation card 等新兴报告标准是对这种“快于评审”生态的补救。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "公共部门入场（3h）"
+            ]
+          },
+          "：EU AI Act、加州 SB 53、US CAISSI、UK AISI，以及提案中的独立验证组织（IVO）机制。核心主张：政府应把评测视为",
+          {
+            "tag": "strong",
+            "children": [
+              "生命周期"
+            ]
+          },
+          "而非一次性采购验收。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": [
+          "•",
+          {
+            "tag": "strong",
+            "children": [
+              "学科入口（3i）"
+            ]
+          },
+          "：为 HCI、心理测量、经济学、社会学/人类学、政治学、法律六个领域分别画出了具体切入点；法律部分关于“AI agent 造成损害时，责任如何在模型商、脚手架商、工具提供方之间分配”的提问尤其有前瞻性。"
+        ]
+      },
+      {
+        "tag": "p",
+        "children": []
+      },
+      {
+        "tag": "p",
+        "children": [
+          {
+            "tag": "span",
+            "children": [
+              "这文章感觉啥也没说就是批判了一通现在评测不行，说了哪里不行，也没说哪里要怎么改啊。"
+            ],
+            "color": "rgb(46,161,33)"
+          }
+        ]
+      },
+      {
+        "tag": "p",
+        "children": []
+      }
+    ]
+  }
+]

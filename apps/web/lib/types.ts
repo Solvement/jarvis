@@ -11,11 +11,12 @@ export type Entry = {
 export type Board = { id:string; source:Source; period:Period; sourceDate:string;
  fetchedAt:string; url:string; items:Entry[]; stale?:boolean; error?:string; contentHash:string };
 export type Reading = { itemId:string; sourceHash:string; entry?:Entry; level:'translation'|'brief'|'deep';
+ discovery?:{day:string;board:string;rank:number};
  title:string; summary:string; generatedAt:string; author:string; coverage:string;
  sections:{heading:string;body:string;citations:string[];figure?:Figure}[];
  sources:{id:string;title:string;url:string;locator?:string}[];
  terms?:{term:string;explanation:string}[]; limitations:string[];
- format?:'skill_guide'|'mechanism'|'paper'|'research';
+ format?:'skill_guide'|'mechanism'|'paper'|'research'|'project_intro';
  /** 研究简报的下一步建议：精读 / 写摘要 / 会用即可 / 不读 / 已有精读。 */
  nextStep?:{kind:'deep'|'brief'|'use'|'skip'|'done';label:string};
  skillCards?:{name:string;group:string;problem:string;when:string;boundary:string;url:string;experimental?:boolean}[];
@@ -35,7 +36,7 @@ export type Study = {
  connections:{title:string;body:string;itemId?:string}[];
  review:{checkedAt:string;method:string;findings:string[]};openQuestions:string[];
 };
-export type LibraryViewer={signedIn:boolean;isOwner:boolean;authEnabled:boolean};
+export type LibraryViewer={signedIn:boolean;isOwner:boolean;authEnabled:boolean;emailEnabled?:boolean;githubEnabled?:boolean;githubLoginOrigin?:string};
 export type Library = {boards:Board[];readings:Reading[]; notice?:string; viewer?:LibraryViewer; edition?:Edition|null};
 /** 看点卡（D-018）。core=内核值得精读；tool=会用即可（写使用指南）；paper=论文。 */
 export type PickKind='core'|'tool'|'paper';

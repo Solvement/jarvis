@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, boolean, jsonb, bigint, integer, index, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, jsonb, bigint, integer, index, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ---- 内容 ----
 
@@ -49,6 +50,15 @@ export const refreshLocks = pgTable("refresh_locks", {
   expires: bigint("expires", { mode: "number" }).notNull(),
 });
 
+/** 原始材料的不可变解析快照；保留段落、页码或源码行号，聊天引用固定到快照。 */
+export const sourceDocuments = pgTable('source_documents', {
+  id:text('id').primaryKey(),
+  itemId:text('item_id').notNull(),
+  kind:text('kind').notNull(),
+  fetchedAt:timestamp('fetched_at',{withTimezone:true}).notNull().defaultNow(),
+  payload:jsonb('payload').notNull(),
+},t=>[index('source_documents_item_idx').on(t.itemId,t.fetchedAt)]);
+
 // ---- 个人状态 ----
 
 /** 每个用户对每个条目的已读、收藏、笔记。只由用户本人显式写入。 */
@@ -68,6 +78,32 @@ export const itemStates = pgTable(
 );
 
 // ---- Better Auth 核心表（字段与 better-auth 1.7 getAuthTables 一致） ----
+
+export const personalCollections = pgTable("personal_collections", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  items: jsonb("items").$type<string[]>().notNull().default([]),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("collections_user_idx").on(t.userId)]);
+
+/** 一次问答一行；客户端不提交历史和系统提示。停止与失败也保留问题。 */
+export const chatTurns = pgTable("chat_turns", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  itemId: text("item_id").notNull(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull().default(""),
+  status: text("status").notNull(),
+  model: text("model").notNull(),
+  version: text("version").notNull(),
+  context: jsonb("context").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  index("chat_user_item_idx").on(t.userId, t.itemId, t.createdAt),
+  uniqueIndex("chat_one_stream_per_user").on(t.userId).where(sql`${t.status} = 'streaming'`),
+]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
