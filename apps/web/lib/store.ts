@@ -88,6 +88,40 @@ export async function refresh(db: Db, fetchBoard: BoardFetcher, now = Date.now()
   return lib;
 }
 
+/** 项目页只补取美东当日的 GitHub 三榜；旧快照不能冒充今日。共用刷新锁防止重复抓取。 */
+export async function ensureGithubToday(db:Db,fetcher:BoardFetcher,day:string,now=Date.now(),force=false) {
+  const previous=new Map((await latestBoards(db)).filter(b=>b.source==='github').map(b=>[b.id,b]));
+  if(!force&&PERIODS.every(p=>previous.get(`github:${p}`)?.sourceDate===day&&!previous.get(`github:${p}`)?.stale))return {day,notice:''};
+  if(!await acquireLock(db,now))return {day,notice:'榜单更新间隔为 2 分钟；当前显示已保存快照，请检查各榜日期。'};
+  const results=await Promise.allSettled(PERIODS.map(p=>fetcher('github',p)));
+  const failed:string[]=[];const at=new Date(now).toISOString();
+  for(const [i,result]of results.entries()){
+    const id=`github:${PERIODS[i]}`;
+    if(result.status==='fulfilled'){await saveSnapshot(db,result.value);continue;}
+    failed.push(PERIODS[i]);const old=previous.get(id);
+    if(old)await saveSnapshot(db,{...old,stale:true,error:'本次 GitHub 更新失败，保留之前的快照。'},`${id}:error:${at}`,at);
+  }
+  return {day,notice:failed.length?`${failed.length} 个 GitHub 榜单未取得今日快照，已标明之前日期；可稍后重试。`:''};
+}
+
+/** Refresh today's four discovery boards together; timestamps do not change their source dates. */
+export async function ensureDiscoveryToday(db:Db,fetcher:BoardFetcher,day:string,now=Date.now()) {
+  const previous=new Map((await latestBoards(db)).map(b=>[b.id,b]));
+  const targets:readonly [Source,Period][]=[['hf','daily'],...PERIODS.map(p=>['github',p] as [Source,Period])];
+  const due=targets.filter(([source,period])=>{const b=previous.get(`${source}:${period}`);return !b||b.stale||b.sourceDate!==day||now-Date.parse(b.fetchedAt)>3_600_000;});
+  if(!due.length)return {day,notice:''};
+  if(!await acquireLock(db,now))return {day,notice:'正在检查今日来源，当前显示已存快照；请核对各榜日期。'};
+  const results=await Promise.allSettled(due.map(([source,period])=>fetcher(source,period)));
+  const failed:string[]=[];const at=new Date(now).toISOString();
+  for(const [i,result]of results.entries()){
+    const id=`${due[i][0]}:${due[i][1]}`;
+    if(result.status==='fulfilled'&&result.value.sourceDate===day){await saveSnapshot(db,result.value);continue;}
+    failed.push(id);const old=previous.get(id);
+    if(old)await saveSnapshot(db,{...old,stale:true,error:'来源尚未提供今日榜单或获取失败；保留上次快照。'},`${id}:today-error:${at}`,at);
+  }
+  return {day,notice:failed.length?`${failed.join('、')} 尚未取得美东今日榜单，历史快照仅在历史资料中查看。`:''};
+}
+
 function checkReading(r: Reading): void {
   if (!["translation", "brief", "deep"].includes(r.level) || !r.title || !r.summary || !r.author || !r.generatedAt || Number.isNaN(Date.parse(r.generatedAt)))
     throw new Error("阅读结果字段不完整");
@@ -143,7 +177,23 @@ export async function importReadings(
   const entries = await knownEntries(db, (payload as Reading[]).map((r) => r?.itemId));
   const rows: (typeof readings.$inferInsert)[] = [];
   for (const raw of payload as Reading[]) {
-    const e = entries.get(raw?.itemId);
+    let e = entries.get(raw?.itemId);
+    // An author may select a paper outside the live boards. Keep its verified
+    // metadata on the reading itself; never invent a trending-board snapshot.
+    if (!e && raw?.entry) {
+      const supplied = raw.entry;
+      const id = raw.itemId?.match(/^paper:(\d{4}\.\d{4,5})$/)?.[1];
+      if (!id || supplied.id !== raw.itemId || supplied.kind !== 'paper' ||
+          supplied.url !== `https://huggingface.co/papers/${id}` ||
+          supplied.pdfUrl !== `https://arxiv.org/pdf/${id}` ||
+          !supplied.title?.trim() || !supplied.summary?.trim() ||
+          !Array.isArray(supplied.authors) || !supplied.authors.length ||
+          supplied.authors.some(a => typeof a !== 'string' || !a.trim()) ||
+          supplied.sourceHash !== await hash(supplied.title + '\n' + supplied.summary))
+        throw new Error('自选论文元数据无效：须使用规范 HF / arXiv 地址、作者及可核对的来源 hash');
+      e = { ...supplied, rank: 0 };
+      entries.set(e.id, e);
+    }
     if (!e) throw new Error(`条目不存在：${raw?.itemId}`);
     if (raw.sourceHash !== e.sourceHash) throw new Error(`来源已改变：${raw.itemId}`);
     checkReading(raw);

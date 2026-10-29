@@ -12,6 +12,7 @@ import {
   defaultVisibility,
 } from "@/lib/store";
 import type { Board, Entry, Period, Reading, Source } from "@/lib/types";
+import {hash} from '@/lib/sources';
 
 const entry = (id: string, sourceHash = "h-" + id): Entry => ({
   id,
@@ -118,6 +119,24 @@ describe("作者导入", () => {
 
   it("拒绝不存在的条目", async () => {
     await expect(importReadings(db, [translation("repo:x/y")])).rejects.toThrow(/条目不存在/);
+  });
+
+  it('自选论文不伪造榜单，保留作者元数据并支持后续修订', async () => {
+    const metadata:Entry={id:'paper:2309.06180',kind:'paper',title:'Selected paper',summary:'Verified abstract',authors:['Author'],url:'https://huggingface.co/papers/2309.06180',pdfUrl:'https://arxiv.org/pdf/2309.06180',rank:99,sourceHash:await hash('Selected paper\nVerified abstract')};
+    const first={...translation(metadata.id,metadata.sourceHash),entry:metadata};
+    await importReadings(db,[first],{visibility:'draft'});
+    expect((await library(db,PUBLIC)).readings).toHaveLength(0);
+    const lib=await library(db,OWNER);
+    expect(lib.boards).toHaveLength(1);
+    expect(lib.readings[0].entry?.rank).toBe(0);
+    await importReadings(db,[{...first,entry:undefined,generatedAt:'2026-10-05T11:00:00-04:00'}],{visibility:'draft'});
+    expect((await library(db,OWNER)).readings).toHaveLength(2);
+  });
+
+  it('拒绝伪造自选论文 hash 或非规范来源，也不允许覆盖已知条目', async () => {
+    const r={...translation('paper:2309.06180'),entry:entry('paper:2309.06180')};
+    await expect(importReadings(db,[r])).rejects.toThrow(/自选论文元数据无效/);
+    await expect(importReadings(db,[{...translation('repo:a/b','bad'),entry:entry('repo:a/b','bad')}])).rejects.toThrow(/来源已改变/);
   });
 
   it("拒绝来源已变化的结果", async () => {

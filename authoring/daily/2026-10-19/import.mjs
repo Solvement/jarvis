@@ -1,0 +1,16 @@
+import fs from 'node:fs/promises';
+import {Script} from 'node:vm';
+import {paper} from './paper.mjs';
+import {project} from './project.mjs';
+import {foldFigure,coordinatorFigure} from './figures.mjs';
+const base=process.env.JARVIS_AUTHOR_BASE||'http://127.0.0.1:3100';
+if(!process.env.AUTHOR_TOKEN)throw Error('Use existing author environment; do not paste credentials');
+const headers={Authorization:`Bearer ${process.env.AUTHOR_TOKEN}`};
+const catalog=await fetch(base+'/api/catalog',{headers}).then(r=>{if(!r.ok)throw Error('Author catalog HTTP '+r.status);return r.json();});
+const stamp=new Date().toISOString();
+for(const f of [foldFigure,coordinatorFigure])for(const m of f.html.matchAll(/<script>([\s\S]*?)<\/script>/g))new Script(m[1]);
+paper.sections[6].figure=foldFigure;project.sections[8].figure=coordinatorFigure;
+const readings=[paper,project].map(r=>{const entry=catalog.entries.find(e=>e.id===r.itemId);const board=catalog.boards.find(b=>b.id===r.discovery.board&&b.sourceDate===r.discovery.day);if(!entry||board?.items[r.discovery.rank-1]?.id!==r.itemId)throw Error('Selection does not match actual dated board');return {...r,sourceHash:entry.sourceHash,generatedAt:stamp,author:'Codex · 今日问题驱动精读'};});
+const response=await fetch(base+'/api/author',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify(readings)});const receipt=await response.json();if(!response.ok)throw Error(JSON.stringify(receipt));
+const root='D:/Agent-Proj/jarvis-daily/2026-10-19';await fs.writeFile(root+'/readings.json',JSON.stringify(readings,null,2));
+const report={...receipt,generatedAt:stamp,visibility:'draft',readings:readings.map(r=>({id:r.itemId,sections:r.sections.length,characters:r.sections.reduce((n,s)=>n+s.body.length,0),discovery:r.discovery}))};await fs.writeFile(root+'/import-receipt.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));

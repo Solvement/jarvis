@@ -1,5 +1,5 @@
 {
-  "purpose": "用现有 Codex 订阅阅读资料并写作，然后将经过核查的结果导入网站；网页刷新不调用模型 API。",
+  "purpose": "在 Claude Code 会话中用 Claude 订阅阅读资料并写作，然后将经过核查的结果导入网站；写作与网页刷新都不调用模型 API。",
   "read": "/api/author",
   "write": {
     "method": "POST",
@@ -42,7 +42,7 @@
     "limitations": [
       "实际阅读范围与未验证内容"
     ],
-    "format": "skill_guide | mechanism | paper（选用指南不可冒充精读）",
+    "format": "skill_guide | mechanism | paper | research | project_intro（白话介绍仅说明用途与例子，采用 translation 层级；不包含推荐或精读判断）",
     "study": {
       "status": "draft | needs_review | accepted_main_text | accepted",
       "scope": "明确完整或专题验收范围",
@@ -109,7 +109,8 @@
         "url": "固定原文件HTTPS",
         "experimental": false
       }
-    ]
+    ],
+    "entry": "可选：仅首次导入榜单外自选论文时提供完整 Entry；id=paper:arXivID，规范 HF / arXiv PDF 地址，作者，title/summary，sourceHash=SHA-256(title+换行+summary)。rank 强制为 0，不写榜单；已有条目不能被覆盖。后续修订可省略。"
   },
   "cadence": "GitHub 保留完整日周月三榜。HF 日周月各处理来源前 5 篇，保留来源顺序与跨榜重复，停止处理榜外遗留摘要。每天精读推荐 0–2 篇，不凑数；推荐不代表完成精读。以源码/原文机制闭环与复核完成决定发布。",
   "quality": [
@@ -126,6 +127,6 @@
     "数字未复现则归属于来源报告；不得编造能力、重要细节或默认参数。",
     "严格匹配当前 sourceHash；私人旧笔记保留本地，不自动公开；不替用户标记已读、已懂。"
   ],
-  "runtime": "已发布内容和原始榜单刷新在公网运行。基于本地 Codex 订阅的写作任务需要电脑和 Codex 应用运行；不承诺关机后继续执行。",
+  "runtime": "已发布内容和原始榜单刷新在公网运行（Vercel Cron 每日一次，另有访客刷新按钮）。写作在作者发起的 Claude Code 会话中进行，计入 Claude 订阅额度；云端定时写作任务尚未启用，因此不承诺无人值守的每日更新。",
   "standard": "/reading-standard.md"
 }

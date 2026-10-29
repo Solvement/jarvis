@@ -15,6 +15,20 @@
       "when": 1791137539008,
       "tag": "0001_picks",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792429914633,
+      "tag": "0002_lethal_doorman",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792432134377,
+      "tag": "0003_bent_joshua_kane",
+      "breakpoints": true
     }
   ]
 }
