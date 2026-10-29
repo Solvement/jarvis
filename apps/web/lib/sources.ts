@@ -14,7 +14,7 @@ export function isoWeek(day:string) {
 }
 export function sourceUrl(source:Source,period:Period,day=sourceDay()) {
  if(source==='github')return `https://github.com/trending?since=${period}`;
- return period==='daily'?'https://huggingface.co/papers':period==='weekly'?`https://huggingface.co/papers/week/${isoWeek(day)}`:`https://huggingface.co/papers/month/${day.slice(0,7)}`;
+ return period==='daily'?`https://huggingface.co/papers/date/${day}`:period==='weekly'?`https://huggingface.co/papers/week/${isoWeek(day)}`:`https://huggingface.co/papers/month/${day.slice(0,7)}`;
 }
 export async function parseGithub(html:string):Promise<Entry[]> {
  const blocks=html.match(/<article\b[^>]*class="[^"]*Box-row[^"]*"[^>]*>[\s\S]*?<\/article>/gi)||[];

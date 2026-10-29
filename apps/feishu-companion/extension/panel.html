@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>飞书学习搭档</title><link rel="stylesheet" href="panel.css"><script src="panel.js" defer></script></head>
+<body>
+  <header><div><span class="eyebrow">CODEX · 学习搭档</span><h1>把疑问留在思考现场</h1></div><span id="connection" class="badge">未连接</span></header>
+  <details id="settings"><summary>连接设置</summary><form id="pair-form"><label>本机地址<input id="server" value="http://127.0.0.1:4399" type="url" required></label><label>本机配对码<input id="token" type="password" placeholder="从本机配对页复制" autocomplete="off" required></label><button type="submit">连接 Codex</button></form><p class="hint">配对文件：apps/feishu-companion/.local/connect.html。凭证仅保存在本机。</p><button id="copy-token" class="quiet" type="button" hidden>复制配对码到扩展</button></details>
+  <section id="bot-pair" class="context" hidden><strong>飞书机器人 · 首次配对</strong><p>在飞书搜索“Jarvis 学习搭档”，私聊发送下方一次性指令。</p><code id="bot-command"></code><div class="actions"><button id="copy-pair" class="quiet" type="button">复制配对指令</button><button id="check-bot" class="quiet" type="button">检查配对结果</button></div></section>
+  <section class="context" aria-label="当前文档"><div class="context-label">本次讨论范围</div><strong id="doc-title">尚未附带文档</strong><p id="context-detail">打开飞书文档，在这里发问时采集正文。</p><blockquote id="selection" hidden></blockquote><div class="actions"><button id="refresh" class="quiet" type="button">查看当前选区</button><button id="sync" class="quiet" type="button">同步给机器人</button></div></section>
+  <section id="messages" aria-live="polite" aria-label="对话"><div class="intro">选中一段，问“为什么”。<br>也可以只放置光标，讨论当前段落。</div></section>
+  <form id="ask-form"><label class="sr-only" for="question">你的问题</label><textarea id="question" rows="3" placeholder="这一段为什么这样设计？" maxlength="12000" required></textarea><div class="composer-bottom"><button id="reset" type="button" class="quiet">新讨论</button><button id="send" type="submit">提问 ↗</button></div></form>
+  <footer id="status" role="status">正文只包含浏览器已加载部分。回答使用 Codex 订阅登录。</footer>
+</body></html>

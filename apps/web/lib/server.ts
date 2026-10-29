@@ -1,12 +1,17 @@
 import { getDb } from "@/db/client";
 import { getAuth, isAuthConfigured } from "./auth";
-import { bearerMatches, isOwnerEmail } from "./access";
+import { bearerMatches, isOwnerEmail, isLocalPersonalRequest } from "./access";
+import { user } from '@/db/schema';
 
-export type RequestViewer = { userId: string | null; email: string | null; isOwner: boolean };
+export type RequestViewer = { userId: string | null; email: string | null; isOwner: boolean; local?: boolean };
 
 /** 会话里的用户；作者身份来自 OWNER_EMAILS，或持有 AUTHOR_TOKEN。 */
 export async function viewerOf(request: Request): Promise<RequestViewer> {
   if (bearerMatches(request, process.env.AUTHOR_TOKEN)) return { userId: null, email: null, isOwner: true };
+  if (!isAuthConfigured() && isLocalPersonalRequest(request)) {
+    await (await getDb()).insert(user).values({ id:'local-owner',name:'本机个人用户',email:'local-owner@localhost.invalid' }).onConflictDoNothing();
+    return { userId:'local-owner',email:null,isOwner:true,local:true };
+  }
   if (!isAuthConfigured()) return { userId: null, email: null, isOwner: false };
   let session;
   try {
@@ -17,7 +22,7 @@ export async function viewerOf(request: Request): Promise<RequestViewer> {
     return { userId: null, email: null, isOwner: false };
   }
   const email = session?.user.email ?? null;
-  return { userId: session?.user.id ?? null, email, isOwner: isOwnerEmail(email, process.env.OWNER_EMAILS) };
+  return { userId: session?.user.id ?? null, email, isOwner: Boolean(session?.user.emailVerified) && isOwnerEmail(email, process.env.OWNER_EMAILS) };
 }
 
 export { getDb };

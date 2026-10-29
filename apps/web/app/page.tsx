@@ -1,4 +1,4 @@
-import Reader from "@/components/reader";
+import Reader from "@/components/desk/reader";
 
 export default function Page() {
   return <Reader />;

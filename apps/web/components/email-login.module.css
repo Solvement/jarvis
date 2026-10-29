@@ -1,0 +1,22 @@
+.dialog { width:min(460px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow-y:auto;margin:auto;padding:30px;border:1px solid var(--p-line,#ddd);border-radius:12px;background:var(--p-paper,#fffefb);color:var(--p-ink,#222);box-shadow:0 24px 80px #0003;font:15px/1.7 'Segoe UI','Microsoft YaHei',sans-serif }
+.dialog::backdrop { background:#13131a88;backdrop-filter:blur(4px) }
+.top { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;font:10px/1.5 Consolas,monospace;letter-spacing:1px;color:var(--p-muted,#777) }
+.dialog .top button { font-size:26px;min-width:44px;min-height:44px;background:none;border:0;color:inherit;cursor:pointer }
+.dialog h2 { font-size:25px;line-height:1.4;margin:0 0 12px }
+.dialog .description { color:var(--p-muted,#666);font-size:14px;margin:0 0 24px }
+.dialog form { display:grid;gap:10px }
+.dialog label { font-size:13px;font-weight:600 }
+.dialog input { width:100%;box-sizing:border-box;min-height:48px;padding:12px;border:1px solid var(--p-line,#ccc);border-radius:6px;background:var(--p-bg,#f8f8f6);color:inherit;font-family:inherit;font-size:16px;line-height:1.5 }
+.dialog input:read-only { color:var(--p-muted,#777) }
+.dialog input:focus-visible,.dialog button:focus-visible { outline:2px solid var(--p-accent,#6330d9);outline-offset:3px }
+.dialog .code { font:26px/1.5 Consolas,monospace;letter-spacing:8px }
+.dialog .primary { min-height:48px;margin-top:6px;padding:10px 14px;border:0;border-radius:6px;background:var(--p-accent,#6330d9);color:#fff;font:inherit;font-weight:600;cursor:pointer }
+.dialog .primary:hover { color:#fff;filter:brightness(1.08) }
+.dialog button:disabled { opacity:.5;cursor:default }
+.secondary { display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap }
+.dialog .secondary button,.dialog .github { min-height:44px;border:0;background:none;color:var(--p-accent,#6330d9);font-family:inherit;font-size:13px;line-height:1.6;cursor:pointer }
+.dialog .delivered { color:var(--p-muted,#666);font-size:13px;line-height:1.8;margin:3px 0 10px }
+.dialog .error { color:#bc3838;font-size:13px;line-height:1.7;margin:4px 0 }
+.dialog .footnote { margin:20px 0 0;color:var(--p-muted,#777);font-size:12px;line-height:1.9 }
+.dialog .github { margin-top:16px;text-decoration:underline;text-underline-offset:4px }
+@media(max-width:480px) { .dialog { padding:22px } .dialog h2 { font-size:23px } }
