@@ -188,3 +188,15 @@
 **改了什么**：commit 55fb30f 部署到生产（Vercel 部署 dpl_2cALKW3Jbj1dCjdKWjiY3qPnr6Vi，状态由 Vercel API 确认为 READY，未轮询站点）；13 篇研究简报以公开可见导入线上。
 
 **验证**：导入返回 `{"ok":true,"count":13}`；访客视角 `/api/library` 读到 13 篇 research 格式、共 11 个图示，"下一步"标签 13 种齐全。线上页面的交互图未在浏览器中逐个复测（本地已逐个验证）。
+
+## 2026-10-29T13:06-04:00 · 作者协议：去掉 Codex 描述，与 D-006 对齐
+
+**改了什么**：`apps/web/public/authoring.json` 的 `purpose`、`runtime` 两个字段。`purpose` 由"用现有 Codex 订阅"改为"在 Claude Code 会话中用 Claude 订阅"，并写明写作也不调用模型 API。`runtime` 由"本地 Codex 订阅、需要电脑和 Codex 应用运行"改为：榜单刷新由 Vercel Cron 每日一次加访客按钮；写作在作者发起的 Claude Code 会话中进行；云端定时写作任务尚未启用，不承诺无人值守的每日更新。
+
+**为什么**：D-006 已定为 Claude 订阅加云端例行任务，README 也写"Claude Code 订阅"；该文件仍是 10/2 ChatGPT Sites 时期的 Codex 描述，按 D-001 以 IMPLEMENTATION_NOTES 为准。`runtime` 没有写成"云端 routine 每日运行"，因为本次用定时任务列表查询，本账号下没有任何定时任务，写成已运行会是无证据论断。
+
+**过程**：全仓库检索 `codex`（不分大小写），命中 3 处：`authoring.json` 2 处（本次修改）、`IMPLEMENTATION_NOTES.md` D-006 备选 1 处（只追加文件、且是对备选的历史描述，不改）。其余字段（schema、cadence、quality、standard）未动。
+
+**涉及文件**：`apps/web/public/authoring.json`、`CHANGELOG.md`。
+
+**验证**：`node -e 'JSON.parse(...)'` 解析成功并打印出新字段；`apps/web/public/` 与 `README.md` 中已无 `Codex`。没有代码读取这两个字段（`/api/author` 只在说明里指向 `/authoring.json`），未跑测试；线上要等合并部署后才生效，尚未验证。
