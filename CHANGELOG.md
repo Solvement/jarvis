@@ -346,3 +346,18 @@
 - **原因**：用户明确要求不再管理该组件（D-038）。
 - **实施**：只改文档。未删除代码，未停止任何进程，未改学习圈的飞书导入。
 - **验证**：无代码改动，无需运行测试；未核查本机是否仍有该服务在运行。
+
+## 2026-11-12T23:48+00:00 · 读取路径不再加载全部快照；失败快照每榜每天只留一行
+
+**改了什么**：
+- apps/web/lib/catalog.ts：catalogContent 先读每份快照的条目 id 列表，再只取需要的快照全文（每个「条目, 来源日」最新一份、每个「榜单, 来源日」最新一份）。entryContent 只读含该条目的快照和该条目自己的阅读版本，不再调用 catalogContent。
+- apps/web/lib/store.ts：saveSnapshot 增加 replace 参数。ensureDiscoveryToday 与 ensureGithubToday 的失败记录 id 由「榜单:error:检查时间」改为「榜单:error:美东日期」，重复失败时更新同一行的检查时间。
+- 新增 apps/web/test/catalog.test.ts（2 项）。
+
+**为什么**：原 catalogContent 每次请求读取 snapshots 和 readings 两张表的全部 jsonb；/api/entry、/api/chat、/api/sources 都经它取一个条目。原 ensureDiscoveryToday 把 stale 榜单视为到期，来源当天未出榜时每次检查都追加一份旧榜单副本，行数随访问增长，又被前一条全量读取。决策见 D-039。
+
+**过程**：先确认目录需要的不变量（条目取最新含它的快照、归档日期取所有含它的来源日、路由取每榜最新和每榜每日最新），再按这些不变量选快照。新测试首次失败：按需读取后 boards 数组顺序与全量读取不同。核对客户端只按 id 和来源日 find，顺序无含义，测试改为按键排序后比较，未改实现。重试间隔未改：现有测试要求失败 3 分钟后可重试，保留。
+
+**涉及文件**：apps/web/lib/catalog.ts、apps/web/lib/store.ts、apps/web/test/catalog.test.ts、CHANGELOG.md、IMPLEMENTATION_NOTES.md。
+
+**验证**：本机 npm test 14 个文件 122 项通过（原 120 项加新 2 项）；npm run typecheck 通过。新测试断言按需读取的条目与读取全部快照后 assembleCatalog 的结果逐项相等，含当天早些时候上榜后离榜的条目。**未验证**：npm run build 未跑；未部署；jsonb_path_query_array 与 @> 只在 PGlite 上跑过，未在 Neon 上跑；线上已有的重复 stale 行未清理；本改动能否降低 Neon 用量没有数据。readings 表在 /api/catalog 仍全量读取，未改。

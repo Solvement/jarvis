@@ -41,11 +41,11 @@ export async function library(db: Db, viewer: Viewer): Promise<Library> {
 }
 
 /** at 是快照的排序时间；失败记录用检查时间排序，payload 内保留上次成功的 fetchedAt。 */
-export async function saveSnapshot(db: Db, b: Board, id = `${b.id}:${b.fetchedAt}`, at = b.fetchedAt): Promise<void> {
-  await db
-    .insert(snapshots)
-    .values({ id, board: b.id, fetchedAt: new Date(at), payload: b })
-    .onConflictDoNothing();
+export async function saveSnapshot(db: Db, b: Board, id = `${b.id}:${b.fetchedAt}`, at = b.fetchedAt, replace = false): Promise<void> {
+  const row = { id, board: b.id, fetchedAt: new Date(at), payload: b };
+  const insert = db.insert(snapshots).values(row);
+  // replace：失败记录每榜每天只留一行，重试只更新检查时间，不再每次追加一份旧榜单副本。
+  await (replace ? insert.onConflictDoUpdate({ target: snapshots.id, set: { fetchedAt: row.fetchedAt, payload: b } }) : insert.onConflictDoNothing());
 }
 
 /** 取锁成功返回 true。锁过期（> 2 分钟）才可再次获取。 */
@@ -99,7 +99,7 @@ export async function ensureGithubToday(db:Db,fetcher:BoardFetcher,day:string,no
     const id=`github:${PERIODS[i]}`;
     if(result.status==='fulfilled'){await saveSnapshot(db,result.value);continue;}
     failed.push(PERIODS[i]);const old=previous.get(id);
-    if(old)await saveSnapshot(db,{...old,stale:true,error:'本次 GitHub 更新失败，保留之前的快照。'},`${id}:error:${at}`,at);
+    if(old)await saveSnapshot(db,{...old,stale:true,error:'本次 GitHub 更新失败，保留之前的快照。'},`${id}:error:${day}`,at,true);
   }
   return {day,notice:failed.length?`${failed.length} 个 GitHub 榜单未取得今日快照，已标明之前日期；可稍后重试。`:''};
 }
@@ -117,7 +117,7 @@ export async function ensureDiscoveryToday(db:Db,fetcher:BoardFetcher,day:string
     const id=`${due[i][0]}:${due[i][1]}`;
     if(result.status==='fulfilled'&&result.value.sourceDate===day){await saveSnapshot(db,result.value);continue;}
     failed.push(id);const old=previous.get(id);
-    if(old)await saveSnapshot(db,{...old,stale:true,error:'来源尚未提供今日榜单或获取失败；保留上次快照。'},`${id}:today-error:${at}`,at);
+    if(old)await saveSnapshot(db,{...old,stale:true,error:'来源尚未提供今日榜单或获取失败；保留上次快照。'},`${id}:today-error:${day}`,at,true);
   }
   return {day,notice:failed.length?`${failed.join('、')} 尚未取得美东今日榜单，历史快照仅在历史资料中查看。`:''};
 }
